@@ -9,6 +9,42 @@ description: Complete Arduino development for XIAO boards. Use when writing Ardu
 
 Complete Arduino development guide for SeeedStudio XIAO series. This skill works with the `/xiao` skill - use `/xiao` for pin definitions, `/xiao-arduino` for platform-specific APIs and libraries.
 
+## Arduino Project Structure (CRITICAL)
+
+**Arduino requires a specific folder/file structure:**
+
+1. **Folder name must match the .ino filename**
+   - Example: If your sketch is named `Blink.ino`, it must be in a folder named `Blink`
+   - The .ino file is the main file - Arduino IDE automatically generates other files
+
+2. **One .ino file per folder**
+   - Each Arduino project (sketch) has its own folder
+   - The folder name = the .ino filename (without extension)
+
+```
+MyArduinoProjects/
+├── BlinkRPM/
+│   └── BlinkRPM.ino          # Folder = filename
+├── CanBusOBDII/
+│   └── CanBusOBDII.ino       # Folder = filename
+└── WeatherStation/
+    └── WeatherStation.ino    # Folder = filename
+```
+
+## Code Generation Workflow (CRITICAL)
+
+**When a user requests Arduino code generation, you MUST:**
+
+### Step 1: Create Project Files
+- Use the `Write` tool to create the actual `.ino` file in the appropriate directory
+- Create the folder structure matching the Arduino requirements
+- Example: Create `XIAO_Expansion_Base_RTC/XIAO_Expansion_Base_RTC.ino`
+
+### Step 2: Verify Compilation (If arduino-cli is Available)
+- After creating the file, run `arduino-cli compile` to verify the code compiles
+- Use the appropriate FQBN for the target board
+- Report compilation results to the user
+
 ## Prerequisites
 
 1. **Pin Definitions**: Read `/xiao` skill first for board-specific pin mappings
