@@ -9,21 +9,29 @@
 
 | Pin | GPIO | Arduino | Functions | Notes |
 |-----|------|---------|-----------|-------|
-| D0 | GPIO44 | D0 | - | - |
-| D1 | GPIO43 | D1 | - | - |
-| D2 | GPIO5 | D2 | - | - |
-| D3 | GPIO6 | D3 | - | - |
-| D4 | GPIO4 | D4 | I2C SDA | Default I2C SDA (XIAO standard) |
-| D5 | GPIO7 | D5 | I2C SCL | Default I2C SCL (XIAO standard) |
-| D6 | GPIO8 | D6 | UART TX | Default UART TX (XIAO standard) |
-| D7 | GPIO9 | D7 | UART RX | Default UART RX (XIAO standard) |
-| D8 | GPIO38 | D8 | SPI SCK | Default SPI SCK (XIAO standard) |
-| D9 | GPIO39 | D9 | SPI MISO | Default SPI MISO (XIAO standard), BOOT button |
-| D10 | GPIO37 | D10 | SPI MOSI | Default SPI MOSI (XIAO standard) |
-| A0 | GPIO1 | A0 | ADC0 | Analog input |
-| A1 | GPIO2 | A1 | ADC1 | Analog input |
-| A2 | GPIO3 | A2 | ADC2 | Analog input |
-| A3 | GPIO4 | A3 | ADC3 | Analog input (shared with D4) |
+| D0 | GPIO1 | D0 | GPIO, ADC | - |
+| D1 | GPIO2 | D1 | GPIO, ADC | - |
+| D2 | GPIO3 | D2 | GPIO, ADC | Onboard SD CS (Sense) |
+| D3 | GPIO4 | D3 | GPIO, ADC | - |
+| D4 | GPIO5 | D4 | I2C SDA, ADC | Default I2C SDA (XIAO standard) |
+| D5 | GPIO6 | D5 | I2C SCL, ADC | Default I2C SCL (XIAO standard) |
+| D6 | GPIO43 | D6 | UART TX | Default UART TX (XIAO standard) |
+| D7 | GPIO44 | D7 | UART RX | Default UART RX (XIAO standard) |
+| D8 | GPIO7 | D8 | SPI SCK, ADC | Default SPI SCK (XIAO standard) |
+| D9 | GPIO8 | D9 | SPI MISO, ADC | Onboard SD MISO (Sense) |
+| D10 | GPIO10 | D10 | SPI MOSI, ADC | Onboard SD MOSI (Sense) |
+| D11 | GPIO42 | D11 | GPIO, ADC | Also used for PDM MIC CLK (Sense) |
+| D12 | GPIO41 | D12 | GPIO, ADC | Also used for PDM MIC DATA (Sense) |
+| BOOT | GPIO0 | BOOT | GPIO | BOOT button |
+| USER_LED | GPIO21 | LED_BUILTIN | LED | User LED |
+| MTDO | GPIO40 | MTDO | JTAG | - |
+| MTDI | GPIO41 | MTDI | JTAG, ADC | Shared with D12 |
+| MTCK | GPIO39 | MTCK | JTAG, ADC | - |
+| MTMS | GPIO42 | MTMS | JTAG, ADC | Shared with D11 |
+| A0 | GPIO1 | A0 | ADC | Same as D0 |
+| A1 | GPIO2 | A1 | ADC | Same as D1 |
+| A2 | GPIO3 | A2 | ADC | Same as D2 |
+| A3 | GPIO4 | A3 | ADC | Same as D3 |
 
 ## XIAO Standard Peripheral Mapping
 
@@ -31,13 +39,13 @@ All XIAO boards follow a unified peripheral pin mapping for expansion board comp
 
 | Interface | Pin | GPIO |
 |-----------|-----|------|
-| **I2C SDA** | D4 | GPIO4 |
-| **I2C SCL** | D5 | GPIO7 |
-| **UART TX** | D6 | GPIO8 |
-| **UART RX** | D7 | GPIO9 |
-| **SPI SCK** | D8 | GPIO38 |
-| **SPI MISO** | D9 | GPIO39 |
-| **SPI MOSI** | D10 | GPIO37 |
+| **I2C SDA** | D4 | GPIO5 |
+| **I2C SCL** | D5 | GPIO6 |
+| **UART TX** | D6 | GPIO43 |
+| **UART RX** | D7 | GPIO44 |
+| **SPI SCK** | D8 | GPIO7 |
+| **SPI MISO** | D9 | GPIO8 |
+| **SPI MOSI** | D10 | GPIO10 |
 
 ## ESP32S3 Sense Onboard Peripherals
 
@@ -47,15 +55,22 @@ The ESP32S3 Sense version includes additional onboard sensors and peripherals.
 
 The Sense version has a camera connector that supports OV2640 and OV5640 cameras.
 
-| Camera Signal | ESP32-S3 GPIO | Camera Signal | ESP32-S3 GPIO |
-|---------------|--------------|---------------|--------------|
-| XMCLK | GPIO10 | DVP_Y8 | GPIO11 |
-| DVP_Y7 | GPIO12 | DVP_PCLK | GPIO13 |
-| DVP_Y6 | GPIO14 | DVP_Y2 | GPIO15 |
-| DVP_Y5 | GPIO16 | DVP_Y3 | GPIO17 |
-| DVP_Y4 | GPIO18 | DVP_VSYNC | GPIO38 |
-| CAM_SCL | GPIO39 | CAM_SDA | GPIO40 |
-| DVP_HREF | GPIO47 | DVP_Y9 | GPIO48 |
+| Camera Signal | ESP32-S3 GPIO | Notes |
+|---|---:|---|
+| XCLK | GPIO10 | Camera-related clock pin |
+| Y8 | GPIO11 | Camera video data pin |
+| Y7 | GPIO12 | Camera video data pin |
+| PCLK | GPIO13 | Camera pixel clock |
+| Y6 | GPIO14 | Camera video data pin |
+| Y2 | GPIO15 | Camera video data pin |
+| Y5 | GPIO16 | Camera video data pin |
+| Y3 | GPIO17 | Camera video data pin |
+| Y4 | GPIO18 | Camera video data pin |
+| CAM_SDA | GPIO40 | I2C data for camera |
+| CAM_SCL | GPIO39 | I2C clock for camera |
+| VSYNC | GPIO38 | Camera vertical sync |
+| HREF | GPIO47 | Camera horizontal sync |
+| Y9 | GPIO48 | Camera video data pin |
 
 **Requirements**: PSRAM must be enabled (Tools > PSRAM: OPI PSRAM)
 
@@ -79,11 +94,11 @@ Built-in PDM microphone for audio input.
 Built-in microSD card slot for storage (supports up to 32GB, FAT32 format).
 
 | SD Card Signal | ESP32-S3 GPIO |
-|---------------|--------------|
-| CS | GPIO21 |
-| CLK | Connected internally |
-| MOSI | Connected internally |
-| MISO | Connected internally |
+|---|---:|
+| CS | GPIO3 |
+| SCK | GPIO7 |
+| MISO | GPIO8 |
+| MOSI | GPIO10 |
 
 **Interface**: SPI
 
@@ -124,10 +139,9 @@ All GPIO pins support PWM.
 
 ## Important Notes
 
-- BOOT button on D9 (GPIO39)
-- More GPIO than ESP32C3
-- USB-OTG support
-- Larger flash for AI models (16MB on Sense)
+- BOOT button is GPIO0
+- USER LED is GPIO21 (`LED_BUILTIN`)
+- Sense model SD card uses GPIO3/7/8/10 (CS/SCK/MISO/MOSI)
 
 ## Power
 

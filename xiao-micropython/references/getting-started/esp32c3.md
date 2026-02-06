@@ -63,29 +63,29 @@ Hello XIAO!
 
 | Name | GPIO | MicroPython Pin |
 |------|------|-----------------|
-| D0 | GPIO8 | Pin(8) |
-| D1 | GPIO9 | Pin(9) |
-| D2 | GPIO7 | Pin(7) |
-| D3 | GPIO6 | Pin(6) |
-| D4 | GPIO5 | Pin(5) |
-| D5 | GPIO4 | Pin(4) |
-| D6 | GPIO3 | Pin(3) |
-| D7 | GPIO10 | Pin(10) |
+| D0 | GPIO2 | Pin(2) |
+| D1 | GPIO3 | Pin(3) |
+| D2 | GPIO4 | Pin(4) |
+| D3 | GPIO5 | Pin(5) |
+| D4 | GPIO6 | Pin(6) |
+| D5 | GPIO7 | Pin(7) |
+| D6 | GPIO21 | Pin(21) |
+| D7 | GPIO20 | Pin(20) |
 | D8 | GPIO8 | Pin(8) |
 | D9 | GPIO9 | Pin(9) |
-| D10 | GPIO37 | Pin(37) |
-| A0 | GPIO1 | Pin(1) |
-| A1 | GPIO0 | Pin(0) |
-| A2 | GPIO2 | Pin(2) |
-| A3 | GPIO4 | Pin(4) |
+| D10 | GPIO10 | Pin(10) |
+| A0 | GPIO2 | Pin(2) |
+| A1 | GPIO3 | Pin(3) |
+| A2 | GPIO4 | Pin(4) |
+| A3 | GPIO5 | Pin(5) |
 
 ## I2C Pins (Default)
 
 ```python
 from machine import I2C, Pin
 
-# Default I2C for ESP32C3
-i2c = I2C(0, sda=Pin(8), scl=Pin(9))  # D0, D1
+# Default I2C for XIAO ESP32C3
+i2c = I2C(0, sda=Pin(6), scl=Pin(7))  # D4, D5
 ```
 
 ## SPI Pins (Default)
@@ -93,8 +93,8 @@ i2c = I2C(0, sda=Pin(8), scl=Pin(9))  # D0, D1
 ```python
 from machine import SPI, Pin
 
-# Default SPI for ESP32C3
-spi = SPI(1, sck=Pin(6), mosi=Pin(7), miso=Pin(3))  # D6, D7, D3
+# Default SPI for XIAO ESP32C3
+spi = SPI(1, sck=Pin(8), mosi=Pin(10), miso=Pin(9))  # D8, D10, D9
 ```
 
 ## UART
@@ -106,7 +106,7 @@ from machine import UART
 uart0 = UART(0, baudrate=115200)
 
 # UART1 (on pins)
-uart1 = UART(1, tx=Pin(6), rx=Pin(7), baudrate=115200)
+uart1 = UART(1, tx=Pin(21), rx=Pin(20), baudrate=115200)  # D6, D7
 ```
 
 ## WiFi Quick Test

@@ -1,7 +1,7 @@
 # XIAO ESP32C6 Reference
 
 **Chipset**: ESP32-C6 (RISC-V, single-core 160MHz)
-**Wireless**: WiFi 6, BLE 5.3, Zigbee, Thread, 802.15.4
+**Wireless**: WiFi 6, Bluetooth 5 (LE), 802.15.4 (Zigbee/Thread)
 **Flash**: 8MB
 **RAM**: 512KB SRAM
 
@@ -9,21 +9,21 @@
 
 | Pin | GPIO | Arduino | Functions | Notes |
 |-----|------|---------|-----------|-------|
-| D0 | GPIO8 | D0 | - | Strapping pin - must be HIGH at boot |
-| D1 | GPIO9 | D1 | - | Connected to BOOT button |
-| D2 | GPIO7 | D2 | - | - |
-| D3 | GPIO6 | D3 | - | - |
-| D4 | GPIO5 | D4 | I2C SDA | Default I2C SDA (XIAO standard) |
-| D5 | GPIO4 | D5 | I2C SCL | Default I2C SCL (XIAO standard) |
-| D6 | GPIO3 | D6 | UART TX | Default UART TX (XIAO standard) |
-| D7 | GPIO10 | D7 | UART RX | Default UART RX (XIAO standard) |
-| D8 | GPIO1 | D8 | SPI SCK | Default SPI SCK (XIAO standard) |
-| D9 | GPIO2 | D9 | SPI MISO | Default SPI MISO (XIAO standard) |
+| D0 | GPIO0 | D0 | GPIO, ADC | - |
+| D1 | GPIO1 | D1 | GPIO, ADC | - |
+| D2 | GPIO2 | D2 | GPIO, ADC | - |
+| D3 | GPIO21 | D3 | GPIO | - |
+| D4 | GPIO22 | D4 | I2C SDA | Default I2C SDA (XIAO standard) |
+| D5 | GPIO23 | D5 | I2C SCL | Default I2C SCL (XIAO standard) |
+| D6 | GPIO16 | D6 | UART TX | Default UART TX (XIAO standard) |
+| D7 | GPIO17 | D7 | UART RX | Default UART RX (XIAO standard) |
+| D8 | GPIO19 | D8 | SPI SCK | Default SPI SCK (XIAO standard) |
+| D9 | GPIO20 | D9 | SPI MISO | Default SPI MISO (XIAO standard) |
 | D10 | GPIO18 | D10 | SPI MOSI | Default SPI MOSI (XIAO standard) |
-| A0 | GPIO0 | A0 | ADC0 | Analog input |
-| A1 | GPIO1 | A1 | ADC1 | Analog input |
-| A2 | GPIO2 | A2 | ADC2 | Analog input |
-| A3 | GPIO3 | A3 | ADC3 | Analog input |
+| USER_LED | GPIO15 | LED_BUILTIN | LED | User light |
+| BOOT | GPIO9 | BOOT | GPIO | Enter boot mode |
+| WIFI_ANT_CONFIG | GPIO14 | - | GPIO | RF switch port select |
+| WIFI_ANT_POWER | GPIO3 | - | GPIO | RF switch power |
 
 ## XIAO Standard Peripheral Mapping
 
@@ -31,12 +31,12 @@ All XIAO boards follow a unified peripheral pin mapping for expansion board comp
 
 | Interface | Pin | GPIO |
 |-----------|-----|------|
-| **I2C SDA** | D4 | GPIO5 |
-| **I2C SCL** | D5 | GPIO4 |
-| **UART TX** | D6 | GPIO3 |
-| **UART RX** | D7 | GPIO10 |
-| **SPI SCK** | D8 | GPIO1 |
-| **SPI MISO** | D9 | GPIO2 |
+| **I2C SDA** | D4 | GPIO22 |
+| **I2C SCL** | D5 | GPIO23 |
+| **UART TX** | D6 | GPIO16 |
+| **UART RX** | D7 | GPIO17 |
+| **SPI SCK** | D8 | GPIO19 |
+| **SPI MISO** | D9 | GPIO20 |
 | **SPI MOSI** | D10 | GPIO18 |
 
 ## I2C
@@ -62,8 +62,8 @@ void setup() {
 ## UART
 
 ```cpp
-#define TX_PIN D6  // GPIO3
-#define RX_PIN D7  // GPIO10
+#define TX_PIN D6  // GPIO16
+#define RX_PIN D7  // GPIO17
 
 void setup() {
     Serial1.begin(115200, SERIAL_8N1, TX_PIN, RX_PIN);
@@ -80,13 +80,9 @@ void setup() {
 
 ## Important Pin Warnings
 
-### D0 (GPIO8) - Strapping Pin
-- Must be HIGH at boot for download mode
-- Add pull-up resistor if using for I/O
-
-### D1 (GPIO9) - BOOT Button
-- Connected to BOOT button
-- Best used as switch input
+### BOOT pin (GPIO9)
+- Connected to BOOT button / boot mode
+- Avoid forcing LOW during normal boot unless entering download mode
 
 ## Power
 

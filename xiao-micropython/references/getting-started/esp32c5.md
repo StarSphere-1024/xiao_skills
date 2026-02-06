@@ -88,8 +88,8 @@ mpremote repl
 from machine import Pin
 import time
 
-# LED is on D10
-led = Pin(10, Pin.OUT)
+# USER LED is on GPIO27
+led = Pin(27, Pin.OUT)
 
 print("Hello from XIAO ESP32C5!")
 
@@ -106,17 +106,18 @@ while True:
 
 | Pin Name | GPIO | Functions |
 |----------|------|-----------|
-| D0 | GPIO8 | ADC1_CH0, I2C, SPI |
-| D1 | GPIO9 | ADC1_CH1, I2C, SPI |
-| D2 | GPIO10 | ADC1_CH2, I2C, SPI |
-| D3 | GPIO11 | ADC1_CH3, I2C, SPI |
-| D4 | GPIO12 | ADC1_CH4, I2C (SDA) |
-| D5 | GPIO13 | ADC1_CH5, I2C (SCL) |
-| D6 | GPIO18 | UART TX |
-| D7 | GPIO17 | UART RX |
-| D8 | GPIO15 | SPI SCK |
-| D9 | GPIO16 | SPI MISO |
-| D10 | GPIO19 | SPI MOSI, LED |
+| D0 | GPIO1 | GPIO, ADC |
+| D1 | GPIO0 | GPIO (BOOT) |
+| D2 | GPIO25 | GPIO |
+| D3 | GPIO7 | GPIO |
+| D4 | GPIO23 | I2C (SDA) |
+| D5 | GPIO24 | I2C (SCL) |
+| D6 | GPIO11 | UART TX |
+| D7 | GPIO12 | UART RX |
+| D8 | GPIO8 | SPI SCK |
+| D9 | GPIO9 | SPI MISO |
+| D10 | GPIO10 | SPI MOSI |
+| USER_LED | GPIO27 | LED |
 
 ## WiFi Connection
 
@@ -141,7 +142,7 @@ print(f'Connected! IP: {wlan.ifconfig()[0]}')
 ```python
 from machine import Pin, I2C
 
-i2c = I2C(0, scl=Pin(5), sda=Pin(4), freq=100000)
+i2c = I2C(0, scl=Pin(24), sda=Pin(23), freq=100000)
 devices = i2c.scan()
 
 print(f'I2C devices found: {len(devices)}')

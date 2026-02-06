@@ -41,19 +41,21 @@ Hello XIAO S3!
 
 | Name | GPIO | Notes |
 |------|------|-------|
-| D0 | GPIO44 | USB- D- |
-| D1 | GPIO43 | USB+ D+ |
-| D2 | GPIO8 | User button |
-| D3 | GPIO9 | Boot button |
-| D4 | GPIO10 | - |
-| D5 | GPIO11 | - |
-| D6 | GPIO12 | - |
-| D7 | GPIO13 | - |
-| D8 | GPIO18 | JTAG TMS |
-| D9 | GPIO19 | JTAG TCK |
-| D10 | GPIO20 | JTAG TDO |
+| D0 | GPIO1 | ADC |
+| D1 | GPIO2 | ADC |
+| D2 | GPIO3 | ADC (SD CS on Sense) |
+| D3 | GPIO4 | ADC |
+| D4 | GPIO5 | I2C SDA |
+| D5 | GPIO6 | I2C SCL |
+| D6 | GPIO43 | UART TX |
+| D7 | GPIO44 | UART RX |
+| D8 | GPIO7 | SPI SCK |
+| D9 | GPIO8 | SPI MISO |
+| D10 | GPIO10 | SPI MOSI |
+| USER_LED | GPIO21 | User LED |
+| BOOT | GPIO0 | BOOT button |
 
-Built-in LED: GPIO39 (white, connected to USB)
+User LED: GPIO21
 
 ## Camera Support (Sense Model)
 

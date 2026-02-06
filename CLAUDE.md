@@ -129,7 +129,6 @@ Brief description.
 ## Troubleshooting
 ### Issue
 Solution.
-```
 
 ## Known Issues & Solutions
 

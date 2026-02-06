@@ -42,8 +42,8 @@ void loop() {
 | D6 | PB08 | A6, ADC | - |
 | D7 | PB09 | A7, ADC | - |
 | D8 | PA07 | A8, ADC | - |
-| D9 | PA06 | A9, ADC | - |
-| D10 | PA05 | A10, DAC | DAC output |
+| D9 | PA05 | A9, ADC | - |
+| D10 | PA06 | A10, ADC | - |
 
 Built-in LED: PA17 (orange)
 
@@ -65,16 +65,16 @@ Built-in LED: PA17 (orange)
 - TC3, TC4, TC5 timers
 
 ### I2C
-- Default: D5 (SDA), D4 (SCL)
+- Default: D4 (SDA), D5 (SCL)
 - Wire peripheral on SERCOM0
 
 ### SPI
-- Default: D8 (MISO), D9 (SCK), D10 (MOSI)
+- Default: D8 (SCK), D9 (MISO), D10 (MOSI)
 - SPI peripheral on SERCOM1
 
 ### UART
 - USB Serial (native)
-- UART0: D6 (RX), D7 (TX) on SERCOM2
+- UART0: D6 (TX), D7 (RX) on SERCOM2
 - SoftwareSerial on any pins
 
 ## USB Device Support

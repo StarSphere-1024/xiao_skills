@@ -17,7 +17,7 @@
 ```cpp
 void setup() {
     Serial.begin(115200);
-    pinMode(D10, OUTPUT);  // Built-in LED
+    pinMode(D10, OUTPUT);  // LED on D10 (connect an external LED)
 }
 
 void loop() {
@@ -43,16 +43,17 @@ void loop() {
 
 | Pin | GPIO | Function | Notes |
 |-----|------|----------|-------|
-| D0 | GPIO8 | I2C SDA | Strapping pin |
-| D1 | GPIO9 | I2C SCL | BOOT button |
-| D2 | GPIO7 | UART RX | - |
-| D3 | GPIO6 | UART TX | Recommend output only |
-| D4 | GPIO5 | SPI CS | - |
-| D5 | GPIO4 | SPI MOSI | - |
-| D6 | GPIO3 | SPI MISO | - |
-| D7 | GPIO10 | SPI SCK | - |
-| D8/D9/D10 | GPIO8/9/37 | GPIO | D8 strapping, D9 BOOT |
-| A0-A3 | GPIO1/0/2/4 | ADC | 12-bit, 0-2.5V |
+| D0 | GPIO2 | ADC (A0) | Strapping pin |
+| D1 | GPIO3 | ADC (A1) | - |
+| D2 | GPIO4 | ADC (A2) | - |
+| D3 | GPIO5 | ADC (A3) | ADC2 (less reliable than ADC1 on some use-cases) |
+| D4 | GPIO6 | I2C SDA | Default I2C SDA |
+| D5 | GPIO7 | I2C SCL | Default I2C SCL |
+| D6 | GPIO21 | UART TX | Default UART TX |
+| D7 | GPIO20 | UART RX | Default UART RX |
+| D8 | GPIO8 | SPI SCK | Strapping pin |
+| D9 | GPIO9 | SPI MISO | BOOT / strapping pin |
+| D10 | GPIO10 | SPI MOSI | - |
 
 ## Known Issues
 

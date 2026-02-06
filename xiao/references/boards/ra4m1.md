@@ -29,6 +29,15 @@
 | D17 | P102 | D17 | UART CRX | Secondary UART |
 | D18 | P103 | D18 | UART CTX | Secondary UART |
 
+### Other Board Pins
+
+- **ADC_BAT**: P400 (battery voltage sense)
+- **RESET**: RES
+- **BOOT**: P201
+- **RGB LED**: P112
+- **CHARGE_LED**: VBUS
+- **USER_LED / LED_BUILTIN**: P011
+
 ## XIAO Standard Peripheral Mapping
 
 All XIAO boards follow a unified peripheral pin mapping for expansion board compatibility:

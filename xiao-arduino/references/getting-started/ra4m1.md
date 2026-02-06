@@ -60,7 +60,13 @@ void loop() {
 | D17 | P102 | CRX0, ADC20, SPI0_SCK | UART0 RX |
 | D18 | P103 | CTX0, ADC19 | UART0 TX |
 
-Built-in LED: P013 (orange)
+Other key pins (from Seeed Ref pin map):
+
+- **ADC_BAT**: P400
+- **RESET**: RES
+- **BOOT**: P201
+- **RGB LED**: P112
+- **USER_LED / LED_BUILTIN**: P011
 
 ## Special Features
 

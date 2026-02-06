@@ -10,17 +10,22 @@
 | Pin | SAMD Pin | Arduino | Functions | Notes |
 |-----|----------|---------|-----------|-------|
 | D0 | PA02 | A0 | ADC | EXTINT[2] |
-| D1 | PA03 | - | DAC/VREF | ADC output |
-| D2 | PA04 | A1 | ADC | EXTINT[4] |
-| D3 | PA05 | A9 | ADC | EXTINT[5] |
-| D4 | PA06 | A10 | ADC | EXTINT[6] |
-| D5 | PA07 | A8 | ADC | EXTINT[7] |
-| D6 | PA08 | A4 | UART TX | Default UART TX (XIAO standard) |
-| D7 | PA09 | A5 | UART RX | Default UART RX (XIAO standard) |
-| D8 | PA10 | A2 | SPI SCK | Default SPI SCK (XIAO standard) |
-| D9 | PA11 | A3 | SPI MISO | Default SPI MISO (XIAO standard) |
-| D10 | PB10 | A6 | SPI MOSI | Default SPI MOSI (XIAO standard) |
-| D11 | PB11 | A7 | SPI CS | SPI CS |
+| D1 | PA04 | A1 | ADC | EXTINT[4] |
+| D2 | PA10 | A2 | ADC | EXTINT[10] |
+| D3 | PA11 | A3 | ADC | EXTINT[11] |
+| D4 | PA08 | A4 | I2C SDA, ADC | Default I2C SDA (XIAO standard) |
+| D5 | PA09 | A5 | I2C SCL, ADC | Default I2C SCL (XIAO standard) |
+| D6 | PB08 | A6 | UART TX, ADC | Default UART TX (XIAO standard) |
+| D7 | PB09 | A7 | UART RX, ADC | Default UART RX (XIAO standard) |
+| D8 | PA07 | A8 | SPI SCK, ADC | Default SPI SCK (XIAO standard) |
+| D9 | PA05 | A9 | SPI MISO, ADC | Default SPI MISO (XIAO standard) |
+| D10 | PA06 | A10 | SPI MOSI, ADC | Default SPI MOSI (XIAO standard) |
+
+### Other Board Pins
+
+- **TX_LED**: PA19
+- **RX_LED**: PA18
+- **USER_LED / LED_BUILTIN**: PA17 (note: on some cores this LED is active-low)
 
 ## XIAO Standard Peripheral Mapping
 
@@ -28,13 +33,13 @@ All XIAO boards follow a unified peripheral pin mapping for expansion board comp
 
 | Interface | Pin | SAMD Pin |
 |-----------|-----|----------|
-| **I2C SDA** | D4 | PA06 |
-| **I2C SCL** | D5 | PA07 |
-| **UART TX** | D6 | PA08 |
-| **UART RX** | D7 | PA09 |
-| **SPI SCK** | D8 | PA10 |
-| **SPI MISO** | D9 | PA11 |
-| **SPI MOSI** | D10 | PB10 |
+| **I2C SDA** | D4 | PA08 |
+| **I2C SCL** | D5 | PA09 |
+| **UART TX** | D6 | PB08 |
+| **UART RX** | D7 | PB09 |
+| **SPI SCK** | D8 | PA07 |
+| **SPI MISO** | D9 | PA05 |
+| **SPI MOSI** | D10 | PA06 |
 
 ## I2C
 

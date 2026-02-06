@@ -14,7 +14,7 @@
 
 | Feature | ESP32C3 | ESP32C6 |
 |---------|----------|----------|
-| Architecture | RISC-V dual-core 240MHz | RISC-V single-core 160MHz |
+| Architecture | RISC-V single-core up to 160MHz | RISC-V single-core 160MHz |
 | Flash | 4MB | 8MB |
 | RAM | 400KB | 512KB |
 | WiFi | WiFi 4 (802.11b/g/n) | WiFi 6 (802.11ax) |
@@ -26,32 +26,32 @@
 
 | Pin | GPIO | Arduino | Function | Notes |
 |-----|------|---------|----------|-------|
-| D0 | GPIO8 | - | I2C SDA | Strapping pin |
-| D1 | GPIO9 | - | I2C SCL | BOOT button |
-| D2 | GPIO7 | - | UART RX | - |
-| D3 | GPIO6 | - | UART TX | Recommend output only |
-| D4 | GPIO5 | - | SPI CS | - |
-| D5 | GPIO4 | - | SPI MOSI | - |
-| D6 | GPIO3 | - | SPI MISO | - |
-| D7 | GPIO10 | - | SPI SCK | - |
-| A0 | GPIO1 | - | ADC0 | - |
-| A1 | GPIO0 | - | ADC1 | Strapping pin |
-| A2 | GPIO2 | - | ADC2 | - |
-| A3 | GPIO4 | - | ADC3 | Shared with D5 |
+| D0 | GPIO0 | D0 | ADC | - |
+| D1 | GPIO1 | D1 | ADC | - |
+| D2 | GPIO2 | D2 | ADC | - |
+| D3 | GPIO21 | D3 | GPIO | - |
+| D4 | GPIO22 | D4 | I2C SDA | Default I2C SDA |
+| D5 | GPIO23 | D5 | I2C SCL | Default I2C SCL |
+| D6 | GPIO16 | D6 | UART TX | Default UART TX |
+| D7 | GPIO17 | D7 | UART RX | Default UART RX |
+| D8 | GPIO19 | D8 | SPI SCK | Default SPI SCK |
+| D9 | GPIO20 | D9 | SPI MISO | Default SPI MISO |
+| D10 | GPIO18 | D10 | SPI MOSI | Default SPI MOSI |
+| USER_LED | GPIO15 | LED_BUILTIN | LED | User light |
 
 ## First Sketch
 
 ```cpp
 void setup() {
     Serial.begin(115200);
-    pinMode(D10, OUTPUT);
+    pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
-    digitalWrite(D10, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
     Serial.println("LED ON");
     delay(1000);
-    digitalWrite(D10, LOW);
+    digitalWrite(LED_BUILTIN, LOW);
     Serial.println("LED OFF");
     delay(1000);
 }

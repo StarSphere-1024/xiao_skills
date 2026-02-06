@@ -152,19 +152,17 @@ switch:
 
 | XIAO Pin | GPIO | ESPHome Pin | Function |
 |----------|------|-------------|----------|
-| D0 | GPIO8 | GPIO8 | USB-, BOOT |
-| D1 | GPIO9 | GPIO9 | USB+, BOOT |
-| D2 | GPIO10 | GPIO10 | SPI MOSI |
-| D3 | GPIO11 | GPIO11 | SPI MISO |
-| D4 | GPIO12 | GPIO12 | I2C SDA (alt) |
-| D5 | GPIO13 | GPIO13 | I2C SCL (alt), LED |
-| D6 | GPIO18 | GPIO18 | UART TX |
-| D7 | GPIO19 | GPIO19 | UART RX |
-| D8 | GPIO20 | GPIO20 | SPI SCK |
-| D9 | GPIO21 | GPIO21 | SPI MISO |
+| D0 | GPIO2 | GPIO2 | ADC |
+| D1 | GPIO3 | GPIO3 | ADC |
+| D2 | GPIO4 | GPIO4 | ADC |
+| D3 | GPIO5 | GPIO5 | ADC |
+| D4 | GPIO6 | GPIO6 | I2C SDA |
+| D5 | GPIO7 | GPIO7 | I2C SCL |
+| D6 | GPIO21 | GPIO21 | UART TX |
+| D7 | GPIO20 | GPIO20 | UART RX |
+| D8 | GPIO8 | GPIO8 | SPI SCK |
+| D9 | GPIO9 | GPIO9 | SPI MISO |
 | D10 | GPIO10 | GPIO10 | SPI MOSI |
-
-**Alternative I2C:** Use GPIO4 (D4) and GPIO5 (D5) for I2C
 
 ## Board Specifications
 

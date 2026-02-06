@@ -1,6 +1,6 @@
 ---
 name: xiao-micropython
-description: Complete MicroPython development for XIAO boards. Use when writing MicroPython scripts for XIAO (ESP32C3/C5/C6/S3, RP2040/RP2350). Requires /xiao skill for board-specific pin definitions. Covers firmware flashing, ESP32/network modules (network, WiFi, BLE, MQTT), machine modules (Pin, I2C, SPI, UART, PWM, ADC), common libraries (urequests, umqtt, ssd1306, bme280, neopixel), and project examples.
+description: Complete MicroPython development for XIAO boards. Use when writing MicroPython scripts for XIAO (ESP32C3/C5/C6/S3, RP2040/RP2350, nRF52840, nRF54L15). Requires /xiao skill for board-specific pin definitions. Covers firmware flashing, ESP32/network modules (network, WiFi, BLE, MQTT), machine modules (Pin, I2C, SPI, UART, PWM, ADC), common libraries (urequests, umqtt, ssd1306, bme280, neopixel), and project examples.
 ---
 
 # XIAO MicroPython Development
@@ -32,6 +32,7 @@ For first-time MicroPython environment setup, see `setup/`:
 | RP2040 | [micropython.org](https://micropython.org/download/RPI_PICO/) | `getting-started/rp2040.md` |
 | RP2350 | [micropython.org](https://micropython.org/download/RPI_PICO2/) | `getting-started/rp2350.md` |
 | nRF52840 | Community port | `getting-started/nrf52840.md` |
+| nRF54L15 | Seeed port | `getting-started/nrf54l15.md` |
 
 **Note**: SAMD21, MG24 MicroPython support is limited or requires community forks.
 

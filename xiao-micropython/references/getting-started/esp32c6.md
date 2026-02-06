@@ -9,10 +9,10 @@ The SeeedStudio XIAO ESP32C6 features the ESP32-C6 chip with WiFi 6, BLE 5.4, an
 | Feature | Value |
 |---------|-------|
 | MCU | ESP32-C6 (RISC-V, 160MHz single-core) |
-| Flash | 4 MB |
+| Flash | 4 MB or 8 MB (varies by module/board) |
 | RAM | 512 KB |
-| WiFi | 802.11b/g/n (2.4GHz, WiFi 6 ready) |
-| BLE | Bluetooth 5.4 |
+| WiFi | Wi‑Fi 6 (2.4 GHz) |
+| BLE | Bluetooth 5 (LE) |
 | 802.15.4 | Zigbee/Thread ready |
 | GPIO | 13 pins |
 | ADC | 12-bit, 5 channels |
@@ -22,19 +22,20 @@ The SeeedStudio XIAO ESP32C6 features the ESP32-C6 chip with WiFi 6, BLE 5.4, an
 
 | XIAO Pin | GPIO | MicroPython | Functions |
 |----------|------|-------------|-----------|
-| D0 | GPIO8 | Pin(8) | USB-, BOOT |
-| D1 | GPIO9 | Pin(9) | USB+, BOOT |
-| D2 | GPIO10 | Pin(10) | SPI MOSI |
-| D3 | GPIO11 | Pin(11) | SPI MISO |
-| D4 | GPIO12 | Pin(12) | I2C SDA (alt) |
-| D5 | GPIO13 | Pin(13) | I2C SCL (alt), LED |
-| D6 | GPIO18 | Pin(18) | UART TX |
-| D7 | GPIO19 | Pin(19) | UART RX |
-| D8 | GPIO20 | Pin(20) | SPI SCK |
-| D9 | GPIO21 | Pin(21) | SPI MISO |
-| D10 | GPIO10 | Pin(10) | SPI MOSI |
+| D0 | GPIO0 | Pin(0) | ADC |
+| D1 | GPIO1 | Pin(1) | ADC |
+| D2 | GPIO2 | Pin(2) | ADC |
+| D3 | GPIO21 | Pin(21) | GPIO |
+| D4 | GPIO22 | Pin(22) | I2C SDA |
+| D5 | GPIO23 | Pin(23) | I2C SCL |
+| D6 | GPIO16 | Pin(16) | UART TX |
+| D7 | GPIO17 | Pin(17) | UART RX |
+| D8 | GPIO19 | Pin(19) | SPI SCK |
+| D9 | GPIO20 | Pin(20) | SPI MISO |
+| D10 | GPIO18 | Pin(18) | SPI MOSI |
+| USER_LED | GPIO15 | Pin(15) | LED |
 
-Built-in LED: GPIO13 (white)
+User LED: GPIO15
 
 ## Flashing MicroPython Firmware
 
@@ -80,8 +81,8 @@ esptool.py --chip esp32c6 --port COM3 write_flash -z 4MB 0 firmware.bin
 from machine import Pin
 import time
 
-# Built-in LED on D13
-led = Pin(13, Pin.OUT)
+# User LED on GPIO15
+led = Pin(15, Pin.OUT)
 
 while True:
     led.value(1)
@@ -100,7 +101,7 @@ from machine import Pin, I2C
 import time
 
 # I2C on D4 (SDA) and D5 (SCL)
-i2c = I2C(0, scl=Pin(5), sda=Pin(4), freq=100000)
+i2c = I2C(0, scl=Pin(23), sda=Pin(22), freq=100000)
 
 # Scan for devices
 devices = i2c.scan()
@@ -118,7 +119,7 @@ print(f"Data: {data}")
 from machine import Pin, SPI
 
 # SPI on D8 (SCK), D9 (MISO), D10 (MOSI)
-spi = SPI(1, sck=Pin(8), miso=Pin(9), mosi=Pin(10), baudrate=1000000)
+spi = SPI(1, sck=Pin(19), miso=Pin(20), mosi=Pin(18), baudrate=1000000)
 
 # Select device
 cs = Pin(2, Pin.OUT)
@@ -137,7 +138,7 @@ cs.value(1)
 from machine import UART, Pin
 
 # UART on D6 (TX) and D7 (RX)
-uart = UART(1, tx=Pin(18), rx=Pin(19), baudrate=115200)
+uart = UART(1, tx=Pin(16), rx=Pin(17), baudrate=115200)
 
 uart.write('Hello XIAO ESP32C6!\n')
 

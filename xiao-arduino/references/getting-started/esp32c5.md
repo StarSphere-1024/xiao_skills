@@ -15,7 +15,7 @@ The SeeedStudio XIAO ESP32C5 features the ESP32-C5 chip with WiFi 6 and Bluetoot
 ## First Sketch
 
 ```cpp
-#define LED_PIN D10  // Built-in LED
+#define LED_PIN LED_BUILTIN  // USER LED (GPIO27)
 
 void setup() {
     Serial.begin(115200);
@@ -35,30 +35,25 @@ void loop() {
 
 | Name | GPIO | Functions | Notes |
 |------|------|-----------|-------|
-| D0 | GPIO8 | USB-, BOOT | Strapping pin |
-| D1 | GPIO9 | USB+, BOOT | Strapping pin |
-| D2 | GPIO2 | ADC1_CH2, Pull-up | Boot mode |
-| D3 | GPIO3 | ADC1_CH3 | - |
-| D4 | GPIO4 | ADC1_CH4 | - |
-| D5 | GPIO5 | ADC1_CH5 | - |
-| D6 | GPIO6 | ADC1_CH6 | - |
-| D7 | GPIO7 | ADC1_CH7 | - |
-| D8 | GPIO10 | ADC2_CH0 | - |
-| D9 | GPIO11 | ADC2_CH1 | - |
-| D10 | GPIO12 | ADC2_CH2, SPI_MISO | - |
+| D0 | GPIO1 | GPIO, ADC | - |
+| D1 | GPIO0 | GPIO | BOOT button / strapping pin |
+| D2 | GPIO25 | GPIO | - |
+| D3 | GPIO7 | GPIO | - |
+| D4 | GPIO23 | I2C SDA | Default I2C SDA (XIAO standard) |
+| D5 | GPIO24 | I2C SCL | Default I2C SCL (XIAO standard) |
+| D6 | GPIO11 | UART TX | Default UART TX (XIAO standard) |
+| D7 | GPIO12 | UART RX | Default UART RX (XIAO standard) |
+| D8 | GPIO8 | SPI SCK | Default SPI SCK (XIAO standard) |
+| D9 | GPIO9 | SPI MISO | Default SPI MISO (XIAO standard) |
+| D10 | GPIO10 | SPI MOSI | Default SPI MOSI (XIAO standard) |
 
-Built-in LED: GPIO39 (white, connected to USB)
+USER LED: GPIO27 (use `LED_BUILTIN`)
 
 ## Special Pins
 
-### Strapping Pins (D0, D1)
-- Used for USB D-/D+
-- Affect boot mode
-- Avoid using as GPIO if possible
-
-### Boot Pin (D2)
-- Pull-up to boot normally
-- Pull-down to enter download mode
+### BOOT button / Strapping pin (D1 / GPIO0)
+- Connected to BOOT button
+- Pulling it LOW during reset enters download/boot mode
 
 ### ADC
 - 12-bit ADC (0-4095)
@@ -70,16 +65,16 @@ Built-in LED: GPIO39 (white, connected to USB)
 - LEDC controller with 16 channels
 
 ### I2C
-- Default: D0 (SDA), D1 (SCL)
+- Default: D4 (SDA), D5 (SCL)
 - Can use any pins with `Wire.begin(sda, scl)`
 
 ### SPI
-- Default: D5 (MOSI), D10 (MISO), D4 (SCK)
+- Default: D8 (SCK), D9 (MISO), D10 (MOSI)
 - Can use custom pins
 
 ### UART
 - USB Serial (CDC)
-- UART0: D7 (RX), D6 (TX)
+- UART: D6 (TX), D7 (RX)
 - UART1: Custom pins
 
 ## WiFi 6 (802.11ax)
@@ -230,8 +225,8 @@ void loop() {}
 
 ## Known Issues
 
-1. **D0 and D1**: Used for USB, avoid for other uses
-2. **D2**: Pull-up resistor affects boot mode
+1. **D1 (GPIO0)**: BOOT/strapping pin; avoid forcing LOW during boot
+2. **JTAG (MTMS/MTDI/MTCK/MTDO)**: recommended to reserve for debugging
 3. **ADC2**: Can't use when WiFi is active
 4. **Power**: Ensure adequate power supply for WiFi
 
@@ -243,7 +238,7 @@ void loop() {}
 - Try different USB port
 
 ### WiFi won't connect
-- Check 2.4GHz only (ESP32C5 WiFi 6 is 2.4GHz)
+- Ensure SSID/password are correct
 - Verify SSID and password
 - Check for interference
 
@@ -253,8 +248,7 @@ void loop() {}
 - Use external reference if needed
 
 ### Boot loop
-- Check D0/D1 state during boot
-- Verify D2 pull-up is present
+- Check D1 (GPIO0) state during boot
 - Try holding BOOT button at power-on
 
 ## Best Practices

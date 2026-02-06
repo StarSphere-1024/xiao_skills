@@ -78,16 +78,16 @@ spi:
 
 # UART (D0=TX, D1=RX)
 uart:
-  tx_pin: GPIO16
-  rx_pin: GPIO17
+  tx_pin: GPIO43
+  rx_pin: GPIO44
   baud_rate: 9600
 
-# Button (D1)
+# BOOT button (GPIO0)
 binary_sensor:
   - platform: gpio
     name: "Button"
     pin:
-      number: GPIO17
+      number: GPIO0
       inverted: true
       mode:
         input: true
@@ -125,20 +125,21 @@ switch:
 
 | XIAO Pin | GPIO | ESPHome Pin | Function |
 |----------|------|-------------|----------|
-| D0 | GPIO16 | GPIO16 | UART TX |
-| D1 | GPIO17 | GPIO17 | UART RX, Button |
-| D2 | GPIO18 | GPIO18 | I2C SDA (alt) |
-| D3 | GPIO19 | GPIO19 | I2C SCL (alt) |
-| D4 | GPIO20 | GPIO20 | PWM |
-| D5 | GPIO21 | GPIO21 | PWM |
-| D6 | GPIO7 | GPIO7 | I2C SDA |
-| D7 | GPIO6 | GPIO6 | I2C SCL |
-| D8 | GPIO8 | GPIO8 | SPI SCK |
-| D9 | GPIO9 | GPIO9 | SPI MISO |
+| D0 | GPIO1 | GPIO1 | ADC |
+| D1 | GPIO2 | GPIO2 | ADC |
+| D2 | GPIO3 | GPIO3 | ADC (SD CS on Sense) |
+| D3 | GPIO4 | GPIO4 | ADC |
+| D4 | GPIO5 | GPIO5 | I2C SDA |
+| D5 | GPIO6 | GPIO6 | I2C SCL |
+| D6 | GPIO43 | GPIO43 | UART TX |
+| D7 | GPIO44 | GPIO44 | UART RX |
+| D8 | GPIO7 | GPIO7 | SPI SCK |
+| D9 | GPIO8 | GPIO8 | SPI MISO |
 | D10 | GPIO10 | GPIO10 | SPI MOSI |
-| D11 | GPIO11 | GPIO11 | SPI MOSI (alt) |
+| BOOT | GPIO0 | GPIO0 | BOOT button |
+| USER_LED | GPIO21 | GPIO21 | User LED |
 
-Built-in LED: GPIO39 (white)
+User LED: GPIO21
 
 ## Camera Configuration (ESP32S3 Sense)
 
@@ -146,23 +147,23 @@ Built-in LED: GPIO39 (white)
 esp32_camera:
   name: "XIAO Camera"
   external_clock:
-    pin: GPIO15
+    pin: GPIO10
     frequency: 20MHz
   i2c_pins:
-    sda: GPIO4
-    scl: GPIO5
+    sda: GPIO40
+    scl: GPIO39
   data_pins:
-    - GPIO34
-    - GPIO13
+    - GPIO15
+    - GPIO17
+    - GPIO18
+    - GPIO16
     - GPIO14
-    - GPIO35
-    - GPIO36
-    - GPIO37
-    - GPIO38
     - GPIO12
-  vsync_pin: GPIO6
-  href_pin: GPIO7
-  pclk_pin: GPIO16
+    - GPIO11
+    - GPIO48
+  vsync_pin: GPIO38
+  href_pin: GPIO47
+  pclk_pin: GPIO13
   resolution: 1024x768
   jpeg_quality: 10
   max_framerate: 10fps

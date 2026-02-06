@@ -101,17 +101,17 @@ switch:
 
 | XIAO Pin | GPIO | ESPHome Pin | Function |
 |----------|------|-------------|----------|
-| D0 | GPIO8 | GPIO8 | USB-, BOOT |
-| D1 | GPIO9 | GPIO9 | USB+, BOOT, LED |
-| D2 | GPIO10 | GPIO10 | SPI MOSI |
-| D3 | GPIO11 | GPIO11 | SPI MISO |
-| D4 | GPIO12 | GPIO12 | I2C SDA |
-| D5 | GPIO13 | GPIO13 | I2C SCL |
-| D6 | GPIO18 | GPIO18 | UART TX |
-| D7 | GPIO19 | GPIO19 | UART RX |
-| D8 | GPIO20 | GPIO20 | SPI SCK |
-| D9 | GPIO21 | GPIO21 | SPI MISO |
-| D10 | GPIO10 | GPIO10 | SPI MOSI |
+| D0 | GPIO0 | GPIO0 | ADC |
+| D1 | GPIO1 | GPIO1 | ADC |
+| D2 | GPIO2 | GPIO2 | ADC |
+| D3 | GPIO21 | GPIO21 | GPIO |
+| D4 | GPIO22 | GPIO22 | I2C SDA |
+| D5 | GPIO23 | GPIO23 | I2C SCL |
+| D6 | GPIO16 | GPIO16 | UART TX |
+| D7 | GPIO17 | GPIO17 | UART RX |
+| D8 | GPIO19 | GPIO19 | SPI SCK |
+| D9 | GPIO20 | GPIO20 | SPI MISO |
+| D10 | GPIO18 | GPIO18 | SPI MOSI |
 
 ## Board Specifications
 

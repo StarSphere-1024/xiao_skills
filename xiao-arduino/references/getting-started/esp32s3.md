@@ -26,21 +26,19 @@
 
 | Pin | GPIO | Arduino | Function | Notes |
 |-----|------|---------|----------|-------|
-| D0 | GPIO44 | D0 | - | - |
-| D1 | GPIO43 | D1 | - | - |
-| D2 | GPIO5 | D2 | - | - |
-| D3 | GPIO6 | D3 | - | - |
-| D4 | GPIO4 | D4 | - | - |
-| D5 | GPIO7 | D5 | - | - |
-| D6 | GPIO8 | D6 | I2C SDA | - |
-| D7 | GPIO9 | D7 | I2C SCL | - |
-| D8 | GPIO38 | D8 | - | - |
-| D9 | GPIO39 | D9 | BOOT button | - |
-| D10 | GPIO37 | D10 | - | - |
-| A0 | GPIO1 | A0 | ADC0 | - |
-| A1 | GPIO2 | A1 | ADC1 | - |
-| A2 | GPIO3 | A2 | ADC2 | - |
-| A3 | GPIO4 | A3 | ADC3 | Shared with D4 |
+| D0 | GPIO1 | D0 | ADC | - |
+| D1 | GPIO2 | D1 | ADC | - |
+| D2 | GPIO3 | D2 | ADC | SD CS (Sense) |
+| D3 | GPIO4 | D3 | ADC | - |
+| D4 | GPIO5 | D4 | I2C SDA | Default I2C SDA |
+| D5 | GPIO6 | D5 | I2C SCL | Default I2C SCL |
+| D6 | GPIO43 | D6 | UART TX | Default UART TX |
+| D7 | GPIO44 | D7 | UART RX | Default UART RX |
+| D8 | GPIO7 | D8 | SPI SCK | Default SPI SCK |
+| D9 | GPIO8 | D9 | SPI MISO | Default SPI MISO |
+| D10 | GPIO10 | D10 | SPI MOSI | Default SPI MOSI |
+| USER_LED | GPIO21 | LED_BUILTIN | LED | User LED |
+| BOOT | GPIO0 | BOOT | GPIO | BOOT button |
 
 ## I2C
 
@@ -48,45 +46,14 @@
 #include <Wire.h>
 
 void setup() {
-    Wire.begin();  // D6 (SDA), D7 (SCL)
+    Wire.begin();  // D4 (SDA), D5 (SCL)
 }
 
 void loop() {}
 ```
 
 ## Camera (Sense Model Only)
-
-```cpp
-#include "esp_camera.h"
-
-// Camera pins for XIAO ESP32S3 Sense
-#define PWDN_GPIO_NUM     -1
-#define RESET_GPIO_NUM    -1
-#define XCLK_GPIO_NUM      15
-#define SIOD_GPIO_NUM      6   // SDA
-#define SIOC_GPIO_NUM      7   // SCL
-#define Y8_GPIO_NUM        9
-#define Y7_GPIO_NUM        8
-#define Y6_GPIO_NUM        10
-#define Y5_GPIO_NUM        12
-#define Y4_GPIO_NUM        11
-#define Y3_GPIO_NUM        5
-#define Y2_GPIO_NUM        3
-#define VSYNC_GPIO_NUM     1
-#define HREF_GPIO_NUM      0
-#define PCLK_GPIO_NUM      2
-
-void setup() {
-    camera_config_t config;
-    config.pin_pwdn = PWDN_GPIO_NUM;
-    config.pin_reset = RESET_GPIO_NUM;
-    config.pin_xclk = XCLK_GPIO_NUM;
-    config.pin_sscb = SIOD_GPIO_NUM;
-    config.pin_sscc = SIOC_GPIO_NUM;
-    // ... (see Sense guide)
-    esp_camera_init(&config);
-}
-```
+The Sense model has a camera connector. For a complete, correct pin mapping and working examples, use the official Seeed Studio XIAO ESP32S3 Sense camera examples/documentation.
 
 ## Dual Core
 
@@ -166,7 +133,7 @@ void setup() {
 
 ### Boot button issue
 
-D9 is connected to BOOT button. Use as input with caution.
+BOOT button is GPIO0. Use as input with caution.
 
 ### Memory issues
 
