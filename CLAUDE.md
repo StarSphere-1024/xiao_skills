@@ -126,6 +126,12 @@ Brief description.
 // Code with comments
 ```
 
+## Note 
+
+Always check whether the generated content can be referenced in Ref, and refuse to make it up.
+Always check whether the generated content can be referenced in Ref, and refuse to make it up.
+Always check whether the generated content can be referenced in Ref, and refuse to make it up.
+
 ## Troubleshooting
 ### Issue
 Solution.
