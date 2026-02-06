@@ -1,0 +1,24 @@
+Ref/
+.vscode/
+.claude/
+*.skill
+arduino-cli/
+docs/
+tests/
+
+# Test artifacts
+.test_*/
+**/.test_*/
+test_output/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+*venv/
+env/
+ENV/
