@@ -163,6 +163,7 @@ Each chipset has unique Arduino APIs beyond standard Arduino functions:
 | Adafruit GFX | `libraries/adafruit-gfx.md` |
 | Adafruit SSD1306 (OLED) | `libraries/ssd1306.md` |
 | Adafruit ST7789 (TFT) | `libraries/st7789.md` |
+| U8g2 (Universal) | `libraries/u8g2.md` |
 
 ## Expansion Boards
 
