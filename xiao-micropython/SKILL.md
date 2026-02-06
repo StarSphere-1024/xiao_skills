@@ -14,12 +14,14 @@ Complete MicroPython development guide for SeeedStudio XIAO series. This skill w
 1. **Pin Definitions**: Read `/xiao` skill first for board-specific pin mappings
 2. **Thonny IDE**: Recommended for MicroPython development
 3. **Firmware**: MicroPython firmware flashed to board
+4. **Code Verification**: Install `mpy-cross` for fast offline syntax checking (recommended)
 
 ### Environment Setup
 
 For first-time MicroPython environment setup, see `setup/`:
 - **Thonny IDE Installation**: `setup/thonny-ide.md`
 - **Firmware Flashing**: `setup/esptool.md`
+- **Code Verification**: `setup/mpy-cross.md` (recommended for syntax validation)
 
 ## Supported Boards
 
@@ -36,16 +38,45 @@ For first-time MicroPython environment setup, see `setup/`:
 
 **Note**: SAMD21, MG24 MicroPython support is limited or requires community forks.
 
+## MicroPython Project Structure (CRITICAL)
+
+**MicroPython projects typically use these file patterns:**
+
+1. **`main.py`** - Main application script (auto-runs on boot)
+2. **`boot.py`** - Initialization script (runs before main.py)
+3. **`config.py`** - Configuration constants and settings
+4. **`lib/`** - Custom library modules
+
+```
+MicroPythonProject/
+├── main.py           # Main application (auto-runs)
+├── boot.py           # WiFi/initialization
+├── config.py         # Pin definitions, settings
+└── lib/
+    ├── wifi.py       # WiFi connection module
+    └── sensor.py     # Sensor driver module
+```
+
+## Code Generation Workflow (CRITICAL)
+
+**When a user requests MicroPython code generation, you MUST:**
+
+### Step 1: Create Project Files
+- Use the `Write` tool to create the actual `.py` file(s)
+- Follow the MicroPython project structure shown above
+- Example: Create `xiao_expansion_base_rtc.py` or a full project with `main.py`, `config.py`, etc.
+
+### Step 2: Verify Syntax (If mpy-cross is Available)
+- After creating the file, run `mpy-cross` to verify syntax
+- This catches errors without needing a physical device
+- Report syntax validation results to the user
+
 ## Quick Start
 
 ### 1. Flash Firmware
 
 ```bash
-# Install esptool for ESP32 series
 pip install esptool
-
-# Download firmware from micropython.org
-# Flash (ESP32C3 example):
 esptool.py --chip esp32c3 --port COM3 write_flash -z 4MB 0 firmware.bin
 ```
 
@@ -65,145 +96,73 @@ led = Pin(10, Pin.OUT)  # D10
 
 while True:
     led.value(1)
-    print("LED ON")
     time.sleep(1)
     led.value(0)
-    print("LED OFF")
     time.sleep(1)
 ```
 
-## Machine Module Reference
+## Machine Module Quick Reference
 
-### GPIO (machine.Pin)
+| Module | Reference | Usage |
+|--------|-----------|-------|
+| GPIO (machine.Pin) | `api/gpio.md` | Digital I/O, interrupts |
+| PWM (machine.PWM) | `api/pwm.md` | Analog output, servo control |
+| ADC (machine.ADC) | `api/adc.md` | Analog input reading |
+| I2C (machine.I2C) | `api/i2c.md` | Sensor communication |
+| SPI (machine.SPI) | `api/spi.md` | High-speed peripherals |
+| UART (machine.UART) | `api/uart.md` | Serial communication |
+
+### GPIO Example
 
 ```python
 from machine import Pin
 
-# Output
 led = Pin(10, Pin.OUT)
-led.value(1)
-led.on()
-led.off()
-led.toggle()
+led.on()           # Turn on
+led.off()          # Turn off
+led.toggle()       # Toggle
 
-# Input with pull-up
 button = Pin(6, Pin.IN, Pin.PULL_UP)
 if button.value() == 0:
-    print("Button pressed")
-
-# IRQ (interrupt)
-def callback(pin):
-    print("Interrupt!", pin)
-
-button.irq(trigger=Pin.IRQ_FALLING, handler=callback)
+    print("Pressed")
 ```
 
-### PWM (machine.PWM)
-
-```python
-from machine import Pin, PWM
-import time
-
-pwm = PWM(Pin(10))
-pwm.freq(1000)      # 1kHz frequency
-pwm.duty(512)       # 50% duty (0-1023)
-
-# Fade LED
-for duty in range(0, 1024, 16):
-    pwm.duty(duty)
-    time.sleep(0.01)
-```
-
-### ADC (machine.ADC)
-
-```python
-from machine import ADC
-import time
-
-adc = ADC(Pin(0))  # A0
-adc.atten(ADC.ATTN_11DB)  # 0-3.3V range (ESP32)
-
-while True:
-    value = adc.read_u16()  # 0-65535
-    voltage = value * 3.3 / 65535
-    print(f"ADC: {value}, Voltage: {voltage:.2f}V")
-    time.sleep(0.5)
-```
-
-### I2C (machine.I2C)
+### I2C Example
 
 ```python
 from machine import I2C, Pin
 
 i2c = I2C(0, scl=Pin(1), sda=Pin(0), freq=100000)
-
-# Scan for devices
 devices = i2c.scan()
 print(f"I2C devices: {[hex(d) for d in devices]}")
-
-# Write to device
-i2c.writeto(0x48, b'\x00')
-
-# Read from device
-i2c.writeto(0x48, b'\x00')
-data = i2c.readfrom(0x48, 2)
-print(data)
 ```
 
-### SPI (machine.SPI)
+## Network Modules (ESP32)
 
-```python
-from machine import SPI, Pin
+| Module | Reference | Usage |
+|--------|-----------|-------|
+| WiFi (network.WLAN) | `api/wifi.md` | Wireless connectivity |
+| HTTP (urequests) | `api/http.md` | Web requests |
+| MQTT (umqtt) | `api/mqtt.md` | IoT messaging |
+| BLE (bluetooth) | `api/ble.md` | Bluetooth Low Energy |
+| Socket | `api/socket.md` | TCP/UDP networking |
 
-spi = SPI(0, baudrate=1000000, polarity=0, phase=0,
-          sck=Pin(2), mosi=Pin(3), miso=Pin(4))
-cs = Pin(5, Pin.OUT)
-
-# Transfer data
-cs.value(0)
-spi.write(b'\x00')
-data = spi.read(2)
-cs.value(1)
-```
-
-### UART (machine.UART)
-
-```python
-from machine import UART
-
-uart = UART(0, baudrate=115200, tx=Pin(6), rx=Pin(7))
-uart.write(b'Hello UART\r\n')
-
-while True:
-    if uart.any():
-        data = uart.read()
-        print(f"Received: {data}")
-```
-
-## ESP32 Network Modules
-
-### WiFi (network.WiFi)
+### WiFi Quick Start
 
 ```python
 import network
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
-wlan.connect('your-SSID', 'your-password')
+wlan.connect('SSID', 'password')
 
 while not wlan.isconnected():
-    print('Connecting...')
     time.sleep(1)
 
-print(f'Connected! IP: {wlan.ifconfig()[0]}')
-
-# Check connection
-wlan.ifconfig()  # (IP, subnet, gateway, DNS)
-wlan.isconnected()
-wlan.status()  # 1000=STAT_IDLE, 1010=STAT_GOT_IP
+print(f'IP: {wlan.ifconfig()[0]}')
 ```
 
-### HTTP Requests (urequests)
+### HTTP Request
 
 ```python
 import urequests
@@ -211,167 +170,117 @@ import urequests
 response = urequests.get('http://httpbin.org/get')
 print(response.text)
 response.close()
-
-# POST request
-data = {'key': 'value'}
-response = urequests.post('http://httpbin.org/post', json=data)
-print(response.text)
-response.close()
-```
-
-### MQTT (umqtt.simple)
-
-```python
-from umqtt.simple import MQTTClient
-import time
-
-# Callback
-def sub_cb(topic, msg):
-    print((topic, msg))
-
-# Connect
-client = MQTTClient("xiao_client", "broker.hivemq.com")
-client.set_callback(sub_cb)
-client.connect()
-client.subscribe(b"xiao/command")
-
-# Publish
-client.publish(b"xiao/sensor", b"Hello XIAO")
-
-# Check messages
-while True:
-    client.check_msg()
-    time.sleep(1)
-```
-
-### Socket (network.socket)
-
-```python
-import network
-import socket
-
-# Connect WiFi first
-wlan = network.WLAN(network.STA_IF)
-wlan.connect('SSID', 'password')
-while not wlan.isconnected():
-    pass
-
-# Create socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.connect(('httpbin.org', 80))
-sock.send(b'GET /get HTTP/1.0\r\n\r\n')
-
-response = sock.recv(4096)
-print(response)
-sock.close()
 ```
 
 ## Common Libraries
+
+| Library | Reference | Usage |
+|---------|-----------|-------|
+| SSD1306 | `libraries/ssd1306.md` | OLED displays |
+| BME280 | `libraries/bme280.md` | Weather sensors |
+| NeoPixel | `libraries/neopixel.md` | RGB LEDs |
+| DHT | `libraries/dht.md` | Temp/Humidity sensors |
+| SD (sdcard) | `libraries/sdcard.md` | SD card storage |
 
 ### SSD1306 OLED
 
 ```python
 from machine import Pin, I2C
 import ssd1306
-import time
 
 i2c = I2C(0, sda=Pin(0), scl=Pin(1))
 oled = ssd1306.SSD1306_I2C(128, 64, i2c)
-
 oled.fill(0)
 oled.text("Hello XIAO!", 0, 0)
 oled.show()
 ```
 
-### BME280 Sensor
+## Code Verification
+
+**Quick syntax validation (no device needed):**
+
+```bash
+# Install mpy-cross
+pip install mpy-cross
+
+# Verify syntax
+mpy-cross script.py
+# ✅ No error = valid, ❌ SyntaxError = fix code
+```
+
+**Device testing (optional):**
+
+```bash
+# Install mpremote
+pip install mpremote
+
+# Test on device
+mpremote run script.py
+```
+
+For detailed verification workflow, see `setup/mpy-cross.md` and `setup/mpremote.md`.
+
+## Board-Specific APIs
+
+### ESP32 Series (C3/C5/C6/S3)
+- **Deep Sleep**: `api/esp32-sleep.md`
+- **BLE**: `api/esp32-ble.md`
+- **Camera (S3 Sense)**: `api/esp32s3-camera.md`
+
+### nRF52 Series (nRF52840)
+- **Sleep**: `api/nrf-sleep.md`
+- **BLE**: `api/nrf-ble.md`
+
+### RP Series (RP2040/RP2350)
+- **Sleep**: `api/rp-sleep.md`
+- **PIO**: `api/rp2040-pio.md`
+
+## Expansion Boards
+
+XIAO expansion boards add peripherals. For hardware specs, see `/xiao/references/expansion_boards/`.
+
+| Expansion Board | Key Features | Reference |
+|----------------|--------------|-----------|
+| Expansion Base | OLED, RTC, SD card, buzzer | `expansion-boards/expansion-base.md` |
+| Round Display | 1.28" touchscreen | `expansion-boards/round-display.md` |
+| Grove Shield | 8 Grove connectors | `expansion-boards/grove-shield.md` |
+| CAN Bus | MCP2515 controller | `expansion-boards/can-bus.md` |
+| GPS/GNSS | L76K GNSS module | `expansion-boards/gps-gnss.md` |
+
+## Expansion Board Examples
+
+### Expansion Base (OLED + RTC)
 
 ```python
 from machine import Pin, I2C
-import bme280
+import ssd1306
+import time
 
+# OLED (I2C address 0x3C)
 i2c = I2C(0, sda=Pin(0), scl=Pin(1))
-bme = bme280.BME280(i2c=i2c)
+oled = ssd1306.SSD1306_I2C(128, 64, i2c)
 
-while True:
-    temp, pressure, hum = bme.read_compensated_data()
-    print(f"Temp: {temp/100:.1f}C, Hum: {hum/1024:.1f}%")
-    time.sleep(2)
-```
+oled.fill(0)
+oled.text("XIAO Base", 0, 0)
+oled.show()
 
-### Neopixel (RP2040, ESP32)
+# RTC (DS3231, I2C address 0x68)
+def set_rtc(datetime_tuple):
+    i2c.writeto(0x68, bytes([0x00] + list(datetime_tuple)))
 
-```python
-from machine import Pin
-from neopixel import NeoPixel
-import time
+def get_rtc():
+    i2c.writeto(0x68, b'\x00')
+    data = i2c.readfrom(0x68, 7)
+    return (data[0], data[1], data[2])
 
-pin = Pin(10, Pin.OUT)
-np = NeoPixel(pin, 8)  # 8 LEDs
+# SD Card (SPI)
+import sdcard, machine
+sd = sdcard.SDCard(machine.SPI(0), machine.Pin(4))
+vfs = os.VfsFat(sd)
+os.mount(vfs, '/sd')
 
-# Set all to red
-np.fill((255, 0, 0))
-np.write()
-
-# Color wheel
-for i in range(256):
-    np[0] = (i, 0, 0)
-    np.write()
-    time.sleep(0.01)
-```
-
-### DHT Sensor
-
-```python
-from machine import Pin
-import dht
-import time
-
-d = dht.DHT22(Pin(0))
-
-while True:
-    try:
-        d.measure()
-        print(f"Temp: {d.temperature()}C, Hum: {d.humidity()}%")
-    except OSError:
-        print("DHT sensor error")
-    time.sleep(2)
-```
-
-## File System
-
-```python
-import os
-
-# List files
-print(os.listdir())
-
-# Write file
-with open('data.txt', 'w') as f:
-    f.write('Hello XIAO!')
-
-# Read file
-with open('data.txt', 'r') as f:
-    content = f.read()
-    print(content)
-
-# Get file info
-print(os.stat('data.txt'))
-```
-
-## Deep Sleep (ESP32)
-
-```python
-import machine
-import time
-
-# Sleep for 60 seconds
-machine.deepsleep(60000)
-
-# Code after this won't execute until wake
-
-# RTC memory (persists through deep sleep)
-rtc = machine.RTC()
-rtc.memory('saved data')
+with open('/sd/data.txt', 'w') as f:
+    f.write('Hello from XIAO!')
 ```
 
 ## Code Patterns
@@ -407,194 +316,41 @@ while True:
     if time.ticks_diff(current, last_check) >= interval:
         last_check = current
         # Do periodic task
-        print("Periodic task")
 
     # Other code here
 ```
 
-## Boot Scripts
-
-### boot.py
-Runs on every boot. Use for initialization:
-
-```python
-# boot.py
-import machine
-import network
-
-# Connect WiFi automatically
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-wlan.connect('SSID', 'password')
-```
-
-### main.py
-Runs after boot.py. Your main application:
-
-```python
-# main.py
-import time
-
-while True:
-    print("Running...")
-    time.sleep(1)
-```
-
-## Code Verification
-
-**After generating MicroPython code, verify it using mpremote CLI.**
-
-### Quick Verification (If mpremote is Already Installed)
-
-```bash
-# Test syntax by running in RAM (doesn't save to device)
-mpremote run script.py
-
-# Or upload and run
-mpremote fs cp script.py :main.py && mpremote reset
-```
-
-### Full Verification (First-Time Setup)
-
-**Step 1: Install mpremote** (if not installed)
-
-```bash
-pip install --user mpremote
-
-# Verify installation
-mpremote --version
-```
-
-**Step 2: Connect to Device**
-
-```bash
-# Auto-detect and connect
-mpremote connect auto
-
-# Or specify port
-mpremote connect /dev/ttyUSB0  # Linux
-mpremote connect COM3         # Windows
-```
-
-**Step 3: Test Code**
-
-```bash
-# Run script in RAM to verify syntax
-mpremote run script.py
-
-# Verify modules are available
-mpremote eval "import machine; import network; print('✅ OK')"
-```
-
-**Step 4: Deploy to Device** (optional)
-
-```bash
-# Upload as main.py (runs on boot)
-mpremote fs cp script.py :main.py
-
-# Reset device
-mpremote reset
-```
-
-### Common Errors and Solutions
-
-| Error Pattern | Cause | Fix |
-|---------------|-------|-----|
-| `SyntaxError: invalid syntax` | CPython features in code | Remove type hints, f-strings |
-| `ImportError: no module named` | Module not available on device | Check device firmware capabilities |
-| `OSError: [Errno 5]` | Wrong I2C/SPI pins | Verify pins with `/xiao` skill |
-| `mpremote: command not found` | mpremote not installed | Run `pip install mpremote` |
-
-### Common mpremote Commands
-
-| Command | Purpose |
-|---------|---------|
-| `mpremote connect auto` | Auto-connect to device |
-| `mpremote run script.py` | Run script in RAM |
-| `mpremote fs cp local.py :remote.py` | Upload file |
-| `mpremote exec "code"` | Execute code string |
-| `mpremote repl` | Enter interactive REPL |
-| `mpremote reset` | Reset device |
-
-### Example: Complete Verification
-
-```python
-# blink.py - Generated for XIAO ESP32C3
-
-from machine import Pin
-import time
-
-LED_PIN = 10  # D10 (from /xiao skill)
-
-def main():
-    led = Pin(LED_PIN, Pin.OUT)
-    while True:
-        led.on()
-        time.sleep(1)
-        led.off()
-        time.sleep(1)
-
-if __name__ == "__main__":
-    main()
-```
-
-**Verification command:**
-```bash
-mpremote run blink.py
-```
-
 ## Troubleshooting
 
-1. Check library name (MicroPython uses different names than CPython)
-2. Some libraries need to be frozen into firmware
-
-### OSError: [Errno 5] Input/output error
-
-1. I2C/SPI pin conflict
-2. Wrong I2C address
-3. Sensor not powered
-
-### WiFi won't connect
-
-1. Check SSID and password
-2. Ensure 2.4GHz network (ESP32 doesn't support 5GHz)
-3. Check router settings
-
-### Board won't enter bootloader
-
-**ESP32**: Hold BOOT button while connecting USB
-**RP2040**: Hold BOOTSEL button while connecting USB
+| Issue | Solution |
+|-------|----------|
+| `OSError: [Errno 5]` | Check I2C/SPI pins with `/xiao` skill |
+| `ImportError` | Verify module exists in firmware |
+| WiFi won't connect | Ensure 2.4GHz network (ESP32 only) |
+| Board won't upload | ESP32: Hold BOOT; RP2040: Hold BOOTSEL |
 
 ## Resources
 
 ### setup/
-Environment installation and firmware flashing:
-- `setup/thonny-ide.md` - Thonny IDE installation and configuration
-- `setup/esptool.md` - MicroPython firmware flashing with esptool
-- `setup/mpremote.md` - mpremote CLI for code verification and deployment
+- `setup/thonny-ide.md` - Thonny IDE installation
+- `setup/esptool.md` - Firmware flashing
+- `setup/mpy-cross.md` - Offline syntax verification
+- `setup/mpremote.md` - Device testing and deployment
 
 ### getting-started/
-Board-specific firmware flashing and setup instructions.
+Board-specific setup instructions.
 
 ### api/
-MicroPython machine module documentation:
-- `api/esp32-sleep.md` - ESP32 deep sleep and power management
-- `api/esp32-ble.md` - ESP32 BLE peripheral/central API
-- `api/nrf-sleep.md` - nRF52 sleep and low power modes
-- `api/nrf-ble.md` - nRF52 BLE API (optimized for ultra-low power)
-- `api/rp-sleep.md` - RP2040/RP2350 sleep configuration
-- `api/esp32s3-camera.md` - ESP32S3 Sense camera API and examples
-- `api/rp2040-pio.md` - RP2040 PIO (Programmable I/O) for custom peripherals
+MicroPython module documentation (GPIO, I2C, WiFi, BLE, sleep, etc.)
 
 ### libraries/
-Common MicroPython libraries and usage examples.
+Common libraries (SSD1306, BME280, NeoPixel, etc.)
 
 ### examples/
 Complete project examples:
 - `examples/weather-station.md` - BME280 weather station with MQTT
 - `examples/ble-peripheral.md` - BLE environmental sensor
 - `examples/mqtt-sensor.md` - MQTT temperature/humidity sensor
-- `examples/data-logger.md` - SD card data logging system
 
 ## Related Skills
 
