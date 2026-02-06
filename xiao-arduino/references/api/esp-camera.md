@@ -2,7 +2,7 @@
 
 ## Overview
 
-The XIAO ESP32S3 Sense features a camera connector that supports OV2640 and OV5640 camera modules.
+The XIAO ESP32S3 Sense features a camera connector intended for use with OV2640 and OV5640 camera modules.
 
 **Compatible Boards:**
 - XIAO ESP32S3 Sense only
@@ -12,7 +12,7 @@ The XIAO ESP32S3 Sense features a camera connector that supports OV2640 and OV56
 - OV5640 (5MP, 2592x1944)
 
 **Requirements:**
-- PSRAM must be enabled (Tools > PSRAM: OPI PSRAM)
+- PSRAM is strongly recommended. Higher resolutions and multiple frame buffers typically require PSRAM.
 - Uses 14 GPIO pins for camera interface
 
 ## Camera Pin Mapping
@@ -42,25 +42,26 @@ The XIAO ESP32S3 Sense features a camera connector that supports OV2640 and OV56
 #include "esp_camera.h"
 
 #define CAMERA_MODEL_XIAO_ESP32S3
-// Or use:
-// #define CAMERA_MODEL_OV2640
-
-camera_config_t config;
 
 void setup() {
     Serial.begin(115200);
 
+    // IMPORTANT: Initialize to zero to avoid undefined fields.
+    camera_config_t config = {};
+
     // Configure camera pins
     config.ledc_channel = LEDC_CHANNEL_0;
     config.ledc_timer = LEDC_TIMER_0;
-    config.pin_d0 = GPIO48;
-    config.pin_d1 = GPIO15;
-    config.pin_d2 = GPIO18;
-    config.pin_d3 = GPIO17;
-    config.pin_d4 = GPIO14;
-    config.pin_d5 = GPIO16;
-    config.pin_d6 = GPIO12;
-    config.pin_d7 = GPIO11;
+
+    // D0..D7 map to Y2..Y9 (see the ESP32 Arduino core CameraWebServer example).
+    config.pin_d0 = 15;  // Y2
+    config.pin_d1 = 17;  // Y3
+    config.pin_d2 = 18;  // Y4
+    config.pin_d3 = 16;  // Y5
+    config.pin_d4 = 14;  // Y6
+    config.pin_d5 = 12;  // Y7
+    config.pin_d6 = 11;  // Y8
+    config.pin_d7 = 48;  // Y9
     config.pin_xclk = GPIO10;
     config.pin_pclk = GPIO13;
     config.pin_vsync = GPIO38;
@@ -72,10 +73,26 @@ void setup() {
     config.xclk_freq_hz = 20000000;
     config.pixel_format = PIXFORMAT_JPEG;
 
+    config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
+    config.fb_location = CAMERA_FB_IN_PSRAM;
+
     // Frame settings
     config.frame_size = FRAMESIZE_UXGA;
     config.jpeg_quality = 12;
-    config.fb_count = 2;
+    config.fb_count = 1;
+
+    // Adjust configuration based on PSRAM availability
+    if (config.pixel_format == PIXFORMAT_JPEG) {
+        if (psramFound()) {
+            config.jpeg_quality = 10;
+            config.fb_count = 2;
+            config.grab_mode = CAMERA_GRAB_LATEST;
+        } else {
+            // Limit the frame size when PSRAM is not available
+            config.frame_size = FRAMESIZE_SVGA;
+            config.fb_location = CAMERA_FB_IN_DRAM;
+        }
+    }
 
     // Initialize camera
     esp_err_t err = esp_camera_init(&config);
@@ -96,33 +113,37 @@ void loop() {
 ```cpp
 #include "esp_camera.h"
 
-#define CAMERA_MODEL_OV5640
-
-// Same pin configuration as OV2640
-// Just change frame_size and pixel_format as needed
+// Uses the same pin configuration as XIAO ESP32S3 Sense.
+// The camera driver detects the sensor PID at runtime (e.g., OV5640_PID).
+// Adjust frame_size and sensor settings as needed.
 ```
 
 ## Camera Configuration
 
 ### Frame Size
 
-Available frame sizes (resolution):
+Available frame sizes are defined by the `framesize_t` enum in the Espressif `esp32-camera` driver (exact availability may depend on the Arduino core version).
 
 | Frame Size | Resolution | Notes |
 |------------|-----------|-------|
 | FRAMESIZE_96X96 | 96x96 | Very low resolution |
 | FRAMESIZE_QQVGA | 160x120 | Low resolution |
-| FRAMESIZE_QQVGA2 | 128x160 | Low resolution |
+| FRAMESIZE_128X128 | 128x128 | Low resolution |
 | FRAMESIZE_QCIF | 176x144 | Low resolution |
 | FRAMESIZE_HQVGA | 240x176 | Medium resolution |
+| FRAMESIZE_240X240 | 240x240 | Square |
 | FRAMESIZE_QVGA | 320x240 | Medium resolution |
+| FRAMESIZE_320X320 | 320x320 | Square |
 | FRAMESIZE_CIF | 400x296 | Medium resolution |
+| FRAMESIZE_HVGA | 480x320 | Wide |
 | FRAMESIZE_VGA | 640x480 | Standard resolution |
 | FRAMESIZE_SVGA | 800x600 | High resolution |
 | FRAMESIZE_XGA | 1024x768 | High resolution |
+| FRAMESIZE_HD | 1280x720 | 720p |
 | FRAMESIZE_SXGA | 1280x1024 | High resolution |
-| FRAMESIZE_UXGA | 1600x1200 | OV2640 max resolution |
-| FRAMESIZE_QXGA | 2048x1536 | OV5640 only |
+| FRAMESIZE_UXGA | 1600x1200 | High resolution |
+| FRAMESIZE_QXGA | 2048x1536 | 3MP class |
+| FRAMESIZE_5MP | 2592x1944 | 5MP class |
 
 **Example:**
 ```cpp
@@ -319,13 +340,6 @@ sensor->set_saturation(sensor, 0);  // -2, -1, 0, 1, 2
 ```cpp
 // Set special effect
 sensor->set_special_effect(sensor, 0);  // 0-6
-// 0 = Normal
-// 1 = Negative
-// 2 = Grayscale
-// 3 = Red Tint
-// 4 = Green Tint
-// 5 = Blue Tint
-// 6 = Sepia
 ```
 
 ### White Balance
@@ -335,7 +349,7 @@ sensor->set_special_effect(sensor, 0);  // 0-6
 sensor->set_whitebal(sensor, 1);  // 0 = off, 1 = on
 
 // Set white balance mode
-sensor->set_wb_mode(sensor, 0);  // 0 = auto, 1 = sunny, 2 = cloudy, etc.
+sensor->set_wb_mode(sensor, 0);  // 0-4
 ```
 
 ### Exposure
@@ -344,64 +358,16 @@ sensor->set_wb_mode(sensor, 0);  // 0 = auto, 1 = sunny, 2 = cloudy, etc.
 // Set exposure
 sensor->set_exposure_ctrl(sensor, 1);  // 0 = off, 1 = on
 
-// Get and set gain
-int gain = sensor->get_gain(sensor);
-sensor->set_gain(sensor, gain);  // 0-30
+// Automatic gain control + gain value (0-30)
+sensor->set_gain_ctrl(sensor, 1);   // 0 = off, 1 = on
+sensor->set_agc_gain(sensor, 0);    // 0-30
 ```
 
 ## Stream Video
 
 ### HTTP MJPEG Stream
 
-```cpp
-#include <WiFi.h>
-#include <WebServer.h>
-#include "esp_camera.h"
-
-WebServer server(80);
-
-void handleStream() {
-    camera_fb_t *fb = esp_camera_fb_get();
-    if (!fb) {
-        server.send(500, "text/plain", "Camera capture failed");
-        return;
-    }
-
-    server.sendHeader("Content-Type", "image/jpeg");
-    server.sendHeader("Content-Length", String(fb->len));
-    server.sendHeader("Cache-Control", "no-store");
-    server.send(200, "image/jpeg", fb->buf, fb->len);
-
-    esp_camera_fb_return(fb);
-}
-
-void setup() {
-    Serial.begin(115200);
-
-    // Initialize WiFi
-    WiFi.begin("your_SSID", "your_PASSWORD");
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("\nWiFi connected");
-    Serial.print("IP: ");
-    Serial.println(WiFi.localIP());
-
-    // Initialize camera...
-    // (use basic setup code from above)
-
-    // Setup web server
-    server.on("/stream", HTTP_GET, handleStream);
-    server.begin();
-    Serial.println("HTTP server started");
-    Serial.println("Open http://<IP>/stream in browser");
-}
-
-void loop() {
-    server.handleClient();
-}
-```
+For a complete, working HTTP server + streaming example (including correct response handling and sensor settings), use the ESP32 Arduino core example `CameraWebServer` and select `CAMERA_MODEL_XIAO_ESP32S3`.
 
 ## Troubleshooting
 
@@ -504,3 +470,9 @@ void loop() {
 - [ESP32 Camera Documentation](https://github.com/espressif/esp32-camera)
 - [OV2640 Datasheet](https://www.ovt.com/download/OV2640_ds_1.03.pdf)
 - [OV5640 Datasheet](https://www.ovt.com/download/OV5640_ds_2.03.pdf)
+
+## References (Repo Evidence)
+
+- `Ref/esp-arduino-core-3.3.6/libraries/ESP32/examples/Camera/CameraWebServer/CameraWebServer.ino` (pin_d0..pin_d7 mapping, PSRAM-dependent settings)
+- `Ref/esp-arduino-core-3.3.6/libraries/ESP32/examples/Camera/CameraWebServer/camera_pins.h` (XIAO ESP32S3 Sense GPIO mapping)
+- Seeed Studio Wiki: Camera usage (GPIO mapping, OV2640/OV5640 compatibility): https://wiki.seeedstudio.com/xiao_esp32s3_camera_usage/
