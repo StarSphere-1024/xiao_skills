@@ -4,7 +4,7 @@
 
 Download from: https://micropython.org/download/ESP32_GENERIC_C3/
 
-Look for: `ESP32_GENERIC_C3-2024xxxx-v1.22.0.bin` (or latest)
+Look for: `ESP32_GENERIC_C3-*.bin` (latest)
 
 ## Flash Firmware
 
@@ -15,7 +15,8 @@ Look for: `ESP32_GENERIC_C3-2024xxxx-v1.22.0.bin` (or latest)
 pip install esptool
 
 # Flash firmware (adjust COM port)
-esptool.py --chip esp32c3 --port COM3 write_flash -z 4MB 0 firmware.bin
+esptool.py --chip esp32c3 --port COM3 erase_flash
+esptool.py --chip esp32c3 --port COM3 --baud 460800 write_flash -z 0x0 firmware.bin
 ```
 
 ### Method 2: Thonny IDE
@@ -41,7 +42,7 @@ esptool.py --chip esp32c3 --port COM3 write_flash -z 4MB 0 firmware.bin
 from machine import Pin
 import time
 
-led = Pin(10, Pin.OUT)  # D10
+led = Pin(7, Pin.OUT)  # Onboard user LED
 
 while True:
     led.value(not led.value())
@@ -191,3 +192,9 @@ while True:
 2. **Avoid blocking delays**: Use non-blocking code
 3. **Use interrupts**: For time-critical tasks
 4. **Optimize loops**: Unroll if needed
+
+## References
+
+- MicroPython downloads (ESP32-C3): https://micropython.org/download/ESP32_GENERIC_C3/
+- MicroPython ESP32 tutorial (install/troubleshooting): https://docs.micropython.org/en/latest/esp32/tutorial/intro.html
+- Seeed wiki (XIAO ESP32C3 with MicroPython): https://wiki.seeedstudio.com/xiao_esp32c3_with_micropython/

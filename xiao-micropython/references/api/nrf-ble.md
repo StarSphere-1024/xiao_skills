@@ -2,14 +2,14 @@
 
 ## Overview
 
-XIAO nRF52840 and nRF52840-Sense feature the Nordic nRF52840 chip with Bluetooth Low Energy (BLE) 5.0 support. nRF52 is optimized for ultra-low power BLE applications.
+XIAO nRF52840 and nRF52840-Sense feature the Nordic nRF52840 chip with Bluetooth Low Energy (BLE) support. In MicroPython, BLE support depends on the firmware build.
 
 ## Key Features
 
-- **BLE 5.0**: 2Mbps data rate, long range, advertising extensions
+- **BLE**: Feature set depends on SoC + firmware build
 - **Multi-role**: Simultaneous peripheral, central, broadcaster, observer
 - **Ultra-low power**: Designed for battery-powered applications
-- **NFC**: nRF52840 includes NFC-A tag support
+- **NFC**: nRF52840 includes NFC-A tag hardware (MicroPython support varies by firmware)
 - **USB**: Built-in USB for debugging and programming
 
 ## Quick Start - Peripheral (Beacon)
@@ -22,8 +22,8 @@ import time
 ble = bluetooth.BLE()
 ble.active(True)
 
-# Simple advertisement
-ble.gap_advertise(100, interval=100000)  # 100ms, 100s timeout
+# Simple advertisement (MicroPython interval is in microseconds)
+ble.gap_advertise(100000)  # 100ms interval
 
 print("Advertising...")
 print("MAC:", ble.config('mac')[1])
@@ -37,12 +37,15 @@ while True:
 ```python
 import bluetooth
 import time
+from micropython import const
 
 ble = bluetooth.BLE()
 ble.active(True)
 
+_IRQ_SCAN_RESULT = const(5)
+
 def irq_handler(event, data):
-    if event == 1:  # Scan result
+    if event == _IRQ_SCAN_RESULT:
         addr_type, addr, adv_type, rssi, adv_data = data
         print(f"Found: {bytes(addr).hex()}, RSSI: {rssi}")
 
@@ -58,12 +61,12 @@ time.sleep(11)  # Wait for scan
 
 | Feature | ESP32 | nRF52 |
 |---------|-------|-------|
-| Module | `ubluetooth` | `bluetooth` |
-| BLE Version | 4.2 (C3), 5.0 (C6/S3) | 5.0 |
+| Module | `bluetooth` | `bluetooth` |
+| BLE Version | SoC/firmware dependent | SoC/firmware dependent |
 | Power | Higher | Ultra-low |
-| Advertising interval | 20ms-10s | 20ms-10s |
-| Max connections | 9 | 20 |
-| throughput | Good | Better |
+| Advertising interval | Configured via `gap_advertise(interval_us, ...)` | Configured via `gap_advertise(interval_us, ...)` |
+| Max connections | Firmware/stack dependent | Firmware/stack dependent |
+| throughput | Application dependent | Application dependent |
 
 ## GATT Server with Environmental Sensing
 
@@ -72,10 +75,14 @@ import bluetooth
 import struct
 import time
 from machine import Pin
+from micropython import const
 
 # Initialize
 ble = bluetooth.BLE()
 ble.active(True)
+
+_IRQ_CENTRAL_CONNECT = const(1)
+_IRQ_CENTRAL_DISCONNECT = const(2)
 
 # LED indicator
 led = Pin(13, Pin.OUT)
@@ -110,19 +117,19 @@ conn_handle = None
 def irq(event, data):
     global connected, conn_handle
 
-    if event == 1:  # _IRQ_CENTRAL_CONNECT
+    if event == _IRQ_CENTRAL_CONNECT:
         conn_handle, addr_type, addr = data
         connected = True
         led.value(1)
         print(f"Connected: {bytes(addr).hex()}")
 
-    elif event == 2:  # _IRQ_CENTRAL_DISCONNECT
+    elif event == _IRQ_CENTRAL_DISCONNECT:
         connected = False
         conn_handle = None
         led.value(0)
         print("Disconnected")
         # Restart advertising
-        ble.gap_advertise(100, adv_data=None)
+        ble.gap_advertise(100000, adv_data)
 
 ble.irq(irq)
 
@@ -131,7 +138,7 @@ ble.config('gap_name', 'XIAO-nRF')
 adv_data = bytearray()
 adv_data += b'\x02\x01\x06'  # Flags
 adv_data += b'\x03\x03\x1A\x18'  # Environmental Sensing
-ble.gap_advertise(100, adv_data)
+ble.gap_advertise(100000, adv_data)
 
 print("Environmental sensor ready")
 
@@ -163,9 +170,13 @@ while True:
 import bluetooth
 import struct
 import time
+from micropython import const
 
 ble = bluetooth.BLE()
 ble.active(True)
+
+_IRQ_CENTRAL_CONNECT = const(1)
+_IRQ_CENTRAL_DISCONNECT = const(2)
 
 # Heart Rate Service
 HR_SERVICE = bluetooth.UUID(0x180D)
@@ -193,15 +204,15 @@ conn_handle = None
 def irq(event, data):
     global connected, conn_handle
 
-    if event == 1:  # Connected
+    if event == _IRQ_CENTRAL_CONNECT:
         conn_handle, addr_type, addr = data
         connected = True
         print("Connected")
 
-    elif event == 2:  # Disconnected
+    elif event == _IRQ_CENTRAL_DISCONNECT:
         connected = False
         conn_handle = None
-        ble.gap_advertise(100)
+        ble.gap_advertise(100000, adv_data)
 
 ble.irq(irq)
 
@@ -210,7 +221,7 @@ ble.config('gap_name', 'XIAO-HR')
 adv_data = bytearray()
 adv_data += b'\x02\x01\x06'  # Flags
 adv_data += b'\x03\x03\x0D\x18'  # Heart Rate Service
-ble.gap_advertise(100, adv_data)
+ble.gap_advertise(100000, adv_data)
 
 # Simulate heart rate
 import random
@@ -230,49 +241,59 @@ while True:
 ```python
 import bluetooth
 import time
+from micropython import const
 
 ble = bluetooth.BLE()
 ble.active(True)
+
+_IRQ_SCAN_RESULT = const(5)
+_IRQ_PERIPHERAL_CONNECT = const(7)
+_IRQ_PERIPHERAL_DISCONNECT = const(8)
+_IRQ_GATTC_SERVICE_RESULT = const(9)
+_IRQ_GATTC_CHARACTERISTIC_RESULT = const(11)
+_IRQ_GATTC_READ_RESULT = const(15)
+_IRQ_GATTC_NOTIFY = const(18)
 
 # Target device address (discover with scan first)
 TARGET_ADDR = None
 
 def irq(event, data):
-    if event == 1:  # Connected
+    if event == _IRQ_PERIPHERAL_CONNECT:
         conn_handle, addr_type, addr = data
         print(f"Connected to {bytes(addr).hex()}")
         # Discover services
         ble.gattc_discover_services(conn_handle)
 
-    elif event == 7:  # Service discovered
+    elif event == _IRQ_GATTC_SERVICE_RESULT:
         conn_handle, start_handle, end_handle, uuid = data
-        print(f"Service {uuid:04X}: {start_handle}-{end_handle}")
+        print(f"Service {uuid}: {start_handle}-{end_handle}")
         # Discover characteristics
         ble.gattc_discover_characteristics(conn_handle, start_handle, end_handle)
 
-    elif event == 8:  # Characteristic discovered
+    elif event == _IRQ_GATTC_CHARACTERISTIC_RESULT:
         conn_handle, def_handle, val_handle, properties, uuid = data
-        print(f"  Characteristic {uuid:04X}: handle={val_handle}")
+        print(f"  Characteristic {uuid}: handle={val_handle}")
 
         # Read if readable
         if properties & 0x02:  # FLAG_READ
             ble.gattc_read(conn_handle, val_handle)
 
-    elif event == 9:  # Read complete
+    elif event == _IRQ_GATTC_READ_RESULT:
         conn_handle, value_handle, char_data = data
         print(f"    Read: {char_data}")
 
-    elif event == 10:  # Notification
-        conn_handle, value_handle, data = data
-        print(f"    Notify: {data}")
+    elif event == _IRQ_GATTC_NOTIFY:
+        conn_handle, value_handle, notify_data = data
+        print(f"    Notify: {notify_data}")
 
-    elif event == 4:  # Scan result
+    elif event == _IRQ_SCAN_RESULT:
         addr_type, addr, adv_type, rssi, adv_data = data
-        addr_str = bytes(addr).hex()
+        addr_bytes = bytes(addr)
+        addr_str = addr_bytes.hex()
         print(f"Found {addr_str}, RSSI: {rssi}")
         # Auto-connect to specific device
-        if TARGET_ADDR and addr == bytes(TARGET_ADDR):
-            ble.gap_connect(addr_type, addr)
+        if TARGET_ADDR and addr_bytes == TARGET_ADDR:
+            ble.gap_connect(addr_type, addr_bytes)
 
 ble.irq(irq)
 
@@ -287,7 +308,7 @@ time.sleep(6)
 
 ```python
 import bluetooth
-import ubinascii
+import struct
 
 ble = bluetooth.BLE()
 ble.active(True)
@@ -298,7 +319,7 @@ ble.active(True)
 # Minor: 1
 # TX Power: -59 dBm
 
-UUID = bluetooth.UUID('01122334-4556-6778-899A-ABBCCDDEEFF0')
+UUID_BYTES = bytes.fromhex('0112233445566778899AABBCCDDEEFF0')
 MAJOR = 1
 MINOR = 1
 TX_POWER = 0xC5  # -59 dBm
@@ -308,7 +329,7 @@ mfg_data = bytearray()
 mfg_data += b'\x4C\x00'  # Apple Company ID
 mfg_data += b'\x02'  # iBeacon type
 mfg_data += b'\x15'  # Data length
-mfg_data += UUID.bytes_le  # UUID (little endian)
+mfg_data += UUID_BYTES  # UUID (big endian)
 mfg_data += struct.pack(">H", MAJOR)  # Major
 mfg_data += struct.pack(">H", MINOR)  # Minor
 mfg_data += bytes([TX_POWER])  # TX power
@@ -322,7 +343,7 @@ adv_data += bytes([len(mfg_data) + 1, 0xFF])  # Length, Type
 adv_data += mfg_data
 
 # Start advertising (non-connectable)
-ble.gap_advertise(100, adv_data, connectable=False)
+ble.gap_advertise(100000, adv_data, connectable=False)
 
 print("iBeacon advertising")
 ```
@@ -331,7 +352,6 @@ print("iBeacon advertising")
 
 ```python
 import bluetooth
-import ubinascii
 
 ble = bluetooth.BLE()
 ble.active(True)
@@ -347,10 +367,9 @@ frame += b'\x00'  # TX power (-0dBm = 0x00)
 frame += b'\x03'  # URL scheme: https://
 frame += url[8:]  # URL after scheme (or use encoding)
 
-# Service data
-eddystone = bluetooth.UUID(0xFEAA)
-service_data = bytearray()
-service_data += frame
+# Service Data AD structure uses a 16-bit UUID followed by service data.
+# For Eddystone-URL the UUID is 0xFEAA (little-endian in the payload).
+service_data = b'\xAA\xFE' + frame
 
 # Advertisement
 adv_data = bytearray()
@@ -362,7 +381,7 @@ adv_data += bytes([len(service_data) + 1, 0x16])
 adv_data += service_data
 
 # Non-connectable
-ble.gap_advertise(100, adv_data, connectable=False)
+ble.gap_advertise(100000, adv_data, connectable=False)
 
 print("Eddystone URL beacon")
 ```
@@ -372,9 +391,13 @@ print("Eddystone URL beacon")
 ```python
 import bluetooth
 import struct
+from micropython import const
 
 ble = bluetooth.BLE()
 ble.active(True)
+
+_IRQ_CENTRAL_CONNECT = const(1)
+_IRQ_CENTRAL_DISCONNECT = const(2)
 
 # Battery Service
 BATT_SERVICE = bluetooth.UUID(0x180F)
@@ -402,14 +425,14 @@ conn_handle = None
 def irq(event, data):
     global connected, conn_handle
 
-    if event == 1:  # Connected
+    if event == _IRQ_CENTRAL_CONNECT:
         conn_handle, addr_type, addr = data
         connected = True
 
-    elif event == 2:  # Disconnected
+    elif event == _IRQ_CENTRAL_DISCONNECT:
         connected = False
         conn_handle = None
-        ble.gap_advertise(100)
+        ble.gap_advertise(100000, adv_data)
 
 ble.irq(irq)
 
@@ -418,7 +441,7 @@ ble.config('gap_name', 'XIAO-Batt')
 adv_data = bytearray()
 adv_data += b'\x02\x01\x06'  # Flags
 adv_data += b'\x03\x03\x0F\x18'  # Battery Service
-ble.gap_advertise(100, adv_data)
+ble.gap_advertise(100000, adv_data)
 
 # Update battery
 import time
@@ -441,9 +464,12 @@ while True:
 ```python
 import bluetooth
 import struct
+from micropython import const
 
 ble = bluetooth.BLE()
 ble.active(True)
+
+_IRQ_GATTS_WRITE = const(3)
 
 # Custom 128-bit UUID
 CUSTOM_SERVICE_UUID = bluetooth.UUID('00001101-0000-1000-8000-00805F9B34FB')
@@ -465,7 +491,7 @@ rx_handle = handles[0][0]
 tx_handle = handles[0][1]
 
 def irq(event, data):
-    if event == 3:  # Write
+    if event == _IRQ_GATTS_WRITE:
         conn_handle, value_handle = data
         if value_handle == rx_handle:
             received = ble.gatts_read(rx_handle)
@@ -479,7 +505,7 @@ ble.irq(irq)
 
 # Advertise
 ble.config('gap_name', 'XIAO-Custom')
-ble.gap_advertise(100)
+ble.gap_advertise(100000)
 
 print("Custom service ready")
 ```
@@ -500,7 +526,7 @@ adv_data += b'\x02\x01\x06'  # Flags
 adv_data += b'\x05\x09\x58\x49\x41\x4F'  # "XIAO"
 
 # Non-connectable advertising
-ble.gap_advertise(1000, adv_data, connectable=False)
+ble.gap_advertise(1000000, adv_data, connectable=False)
 
 print("Low power beacon")
 
@@ -517,26 +543,28 @@ while True:
     machine.lightsleep(50000)
 
     # Wake and resume
-    ble.gap_advertise(1000, adv_data, connectable=False)
+    ble.gap_advertise(1000000, adv_data, connectable=False)
 ```
 
 ## RSSI Distance Estimation
 
 ```python
 import bluetooth
+from micropython import const
 
 ble = bluetooth.BLE()
 ble.active(True)
 
+_IRQ_SCAN_RESULT = const(5)
+
 devices = {}
 
 def irq(event, data):
-    if event == 1:  # Scan result
+    if event == _IRQ_SCAN_RESULT:
         addr_type, addr, adv_type, rssi, adv_data = data
         addr_str = bytes(addr).hex()
 
-        # Estimate distance (path loss model)
-        # RSSI decreases by ~6dB per 2x distance
+        # Estimate distance (very rough heuristic; environment dependent)
         tx_power = -59  # Typical BLE TX power
         if rssi != 0:
             distance = 10 ** ((tx_power - rssi) / 20)
@@ -567,53 +595,39 @@ for addr, info in devices.items():
 
 ```python
 import bluetooth
+from micropython import const
 
 ble = bluetooth.BLE()
 ble.active(True)
 
+_IRQ_CENTRAL_CONNECT = const(1)
+_IRQ_CONNECTION_UPDATE = const(27)
+
 def irq(event, data):
-    if event == 1:  # Connected
+    if event == _IRQ_CENTRAL_CONNECT:
         conn_handle, addr_type, addr = data
         print(f"Connected: {conn_handle}")
 
-        # Request connection parameters
-        # min_interval: 30ms (24 * 1.25ms)
-        # max_interval: 50ms (40 * 1.25ms)
-        # latency: 0
-        # timeout: 4000ms (400 * 10ms)
-        ble.gap_conn_update(conn_handle, 24, 40, 0, 400)
-
-    elif event == 13:  # Connection updated
+    elif event == _IRQ_CONNECTION_UPDATE:
         conn_handle, conn_interval, conn_latency, supervision_timeout = data
         print(f"Parameters updated: interval={conn_interval*1.25}ms, latency={conn_latency}")
 
 ble.irq(irq)
 
-ble.gap_advertise(100)
+ble.gap_advertise(100000)
 ```
 
 ## NFC Tag (nRF52840 Only)
 
 ```python
-from machine import Pin
-import nfc
+import machine
 
-# Initialize NFC (on nRF52840-Sense)
-nfc_dev = nfc.NFC(Pin(6), Pin(7))  # SDA, SCL
-
-# NFC Forum Type 4 tag
-ndef_records = [
-    {
-        'type': 'U',  # URI
-        'data': 'https://seeed.io/xiao'
-    }
-]
-
-nfc_dev.ndef_records(ndef_records)
-nfc_dev.start()
-
-print("NFC tag active")
-print("Tap with NFC reader to open URL")
+# NFC support varies by MicroPython firmware build.
+try:
+    nfc = machine.NFC()
+    print("NFC available")
+except:
+    print("NFC not available in this firmware")
 ```
 
 ## Troubleshooting
@@ -638,10 +652,10 @@ ImportError: no module named 'bluetooth'
 ### Can't connect
 
 1. Ensure device is advertising
-2. Check advertising interval (100ms recommended)
+2. Check advertising interval (e.g. 100ms = 100000us)
 3. Verify device name matches
 4. Check connection parameters
-5. Ensure not at max connections (20 for nRF52)
+5. Ensure you are not at the firmware/stack connection limit
 
 ### Notifications not received
 
@@ -666,11 +680,11 @@ nRF52 is designed for ultra-low power:
 
 ```python
 # Long advertising interval (10 seconds)
-ble.gap_advertise(10000)  # Battery friendly
+ble.gap_advertise(10_000_000)  # Battery friendly (10s)
 
 # Sleep between advertising
 while True:
-    ble.gap_advertise(100)
+    ble.gap_advertise(100000)
     time.sleep(5)  # Advertise 5 seconds
     ble.gap_advertise(None)
     machine.lightsleep(55000)  # Sleep 55 seconds
@@ -680,10 +694,10 @@ while True:
 
 | Board | BLE | Notes |
 |-------|-----|-------|
-| nRF52840 | ✅ | BLE 5.0, 20 connections |
+| nRF52840 | ✅ | BLE support (verify firmware build) |
 | nRF52840-Sense | ✅ | + IMU, MIC |
-| nRF54L15-Sense | ✅ | BLE 5.4, ultra-low power |
-| ESP32C3/C6/S3 | ✅ | Use `ubluetooth` module |
+| nRF54L15-Sense | ✅ | BLE support (verify firmware build) |
+| ESP32C3/C6/S3 | ✅ | Use `bluetooth` module |
 | RP2040 | ❌ | No radio |
 
 ## Related Resources

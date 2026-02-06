@@ -2,7 +2,9 @@
 
 ## Overview
 
-Deep sleep, light sleep, and power management for ESP32-based XIAO boards.
+Deep sleep, light sleep, and power management for ESP32-family XIAO boards running the MicroPython ESP32 port.
+
+Note: ESP32 variants (ESP32 / ESP32-S2 / ESP32-S3 / ESP32-C3 / ESP32-C6, etc.) differ in available wake sources and peripherals. The examples below use only APIs documented by MicroPython; where a feature is SoC-dependent, it is called out explicitly.
 
 ## Deep Sleep
 
@@ -10,7 +12,6 @@ Deep sleep, light sleep, and power management for ESP32-based XIAO boards.
 
 ```python
 import machine
-import time
 
 print("Going to deep sleep...")
 
@@ -37,7 +38,7 @@ import machine
 
 # RTC memory variables
 rtc = machine.RTC()
-rtc.memory('boot_count=0')  # First time
+rtc.memory(b'boot_count=0')  # First time
 
 # Read memory
 mem = rtc.memory().decode('utf-8')
@@ -50,7 +51,7 @@ else:
 print(f"Boot count: {count}")
 
 # Save for next wake
-rtc.memory(f'boot_count={count}')
+rtc.memory(f'boot_count={count}'.encode())
 
 # Sleep
 machine.deepsleep(10000)
@@ -61,14 +62,16 @@ machine.deepsleep(10000)
 ```python
 import machine
 from machine import Pin
+import esp32
 
 # Configure GPIO for wakeup
 wake_pin = Pin(0, Pin.IN, Pin.PULL_UP)
 
-# Wake on GPIO LOW
-machine.wake_on_ext0(Pin(0), machine.WAKEUP_ANY_LOW)
+# EXT0 wake: wake when the selected RTC-capable pin is LOW.
+# Note: EXT0/EXT1 wake configuration is in the `esp32` module (SoC/board support varies).
+esp32.wake_on_ext0(wake_pin, esp32.WAKEUP_ALL_LOW)
 
-print("Sleeping... Wake with D0 LOW")
+print("Sleeping... wake by pulling GPIO0 LOW")
 machine.deepsleep()
 ```
 
@@ -77,10 +80,11 @@ machine.deepsleep()
 ```python
 import machine
 from machine import Pin
+import esp32
 
-# Wake on multiple pins
-pins = [Pin(0), Pin(1)]
-machine.wake_on_ext0(pins, machine.WAKEUP_ANY_HIGH)
+# EXT1 wake: wake when ANY selected pin is HIGH.
+pins = (Pin(0, Pin.IN), Pin(1, Pin.IN))
+esp32.wake_on_ext1(pins, esp32.WAKEUP_ANY_HIGH)
 
 print("Sleeping...")
 machine.deepsleep()
@@ -90,12 +94,17 @@ machine.deepsleep()
 
 ```python
 import machine
+from machine import Pin, TouchPad
+import esp32
 
-# Wake on touch pin (T0)
-machine.wake_on_touch(True)
+# Capacitive touch is supported on ESP32 / ESP32-S2 / ESP32-S3 (not ESP32-C3/C6).
+# Configure a TouchPad threshold and enable touch wake.
+t = TouchPad(Pin(14))
+t.config(500)
+esp32.wake_on_touch(True)
 
 print("Touch pin to wake")
-machine.deepsleep()
+machine.lightsleep()
 ```
 
 ## Light Sleep
@@ -137,16 +146,20 @@ import time
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
-wlan.config(pm=network.WIFI_PS_MIN_MODEM)  # Enable WiFi power save
+try:
+    wlan.config(pm=network.WLAN.PM_POWERSAVE)
+except Exception:
+    # Power-management constants/config vary by port/version.
+    pass
 wlan.connect('SSID', 'password')
 
 while not wlan.isconnected():
-    pass
+    machine.idle()
 
 print("Connected, entering light sleep loop")
 
 while True:
-    # Light sleep keeps WiFi connected in low power
+    # Light sleep retains RAM/state, but WiFi connectivity across sleep is port/firmware dependent.
     machine.lightsleep(10000)
     print("Still connected:", wlan.isconnected())
 ```
@@ -165,9 +178,10 @@ wlan.active(False)
 
 # Disable Bluetooth
 try:
-    bluetooth = machine.Bluetooth()
-    bluetooth.active(False)
-except:
+    import bluetooth
+    ble = bluetooth.BLE()
+    ble.active(False)
+except Exception:
     pass
 
 # Now enter deep sleep
@@ -179,23 +193,29 @@ machine.deepsleep()
 ```python
 import machine
 
-# Set CPU frequency (MHz)
-machine.freq(80)   # Low power
-machine.freq(160)  # Medium
-machine.freq(240)  # Maximum (ESP32S3)
+# machine.freq() is in Hz (and supported settable values vary by SoC/port build).
+machine.freq(80_000_000)   # 80 MHz
+# machine.freq(160_000_000)  # 160 MHz
+# machine.freq(240_000_000)  # 240 MHz (original ESP32; may not apply to all variants)
 
-print(f"Current frequency: {machine.freq()} MHz")
+print(f"Current frequency: {machine.freq()} Hz")
 ```
 
 ### Measure Current
 
 ```python
 import machine
-import time
+import network
 
 # Put all pins to input mode with pull-down
 from machine import Pin
-pins = [Pin(i, Pin.IN, Pin.PULL_DOWN) for i in range(0, 10)]
+# Note: pull resistors can increase leakage during sleep on some boards.
+pins = [Pin(i, Pin.IN) for i in range(0, 10)]
+for p in pins:
+    try:
+        p.init(pull=None)
+    except Exception:
+        pass
 
 # Disable unused peripherals
 network.WLAN(network.STA_IF).active(False)
@@ -214,7 +234,7 @@ import machine
 def check_wakeup_reason():
     reason = machine.reset_cause()
 
-    if reason == machine.DEEP_SLEEP_RESET:
+    if reason == machine.DEEPSLEEP_RESET:
         print("Woke from deep sleep")
     elif reason == machine.HARD_RESET:
         print("Hard reset (power-on)")
@@ -233,20 +253,8 @@ check_wakeup_reason()
 ```python
 import machine
 
-def wake_stub():
-    # Runs immediately on wake
-    # Set LED to indicate wake
-    from machine import Pin
-    led = Pin(2, Pin.OUT)
-    led.on()
-
-# Note: MicroPython doesn't support wake stub directly
-# Use this pattern instead:
-import machine
-rtc = machine.RTC()
-
 # Check if just woke from deep sleep
-if machine.reset_cause() == machine.DEEP_SLEEP_RESET:
+if machine.reset_cause() == machine.DEEPSLEEP_RESET:
     # Do wake-up tasks
     print("Just woke from deep sleep")
     # Then continue normal operation
@@ -260,14 +268,21 @@ if machine.reset_cause() == machine.DEEP_SLEEP_RESET:
 from machine import ADC, Pin
 import time
 
-adc = ADC(Pin(1))
+# Board-specific note: choose an ADC-capable GPIO and use a safe voltage divider.
+# The ADC input must not exceed the chip's absolute maximum rating.
+ADC_GPIO = 1
+adc = ADC(Pin(ADC_GPIO))
 adc.atten(ADC.ATTN_11DB)
 
+# If your board uses a resistor divider, set this to V_battery / V_adc.
+DIVIDER_RATIO = 1.0
+
 def read_battery():
-    # Read ADC and convert to voltage
-    value = adc.read()
-    voltage = value / 4095 * 3.9  # Adjust for your divider
-    return voltage
+    # Prefer calibrated voltage if available on your firmware.
+    if not hasattr(adc, 'read_uv'):
+        raise RuntimeError("ADC.read_uv() is not available on this firmware; use a calibrated method or scale raw ADC readings with board-specific calibration.")
+    v_adc = adc.read_uv() / 1_000_000
+    return v_adc * DIVIDER_RATIO
 
 while True:
     bat = read_battery()
@@ -281,13 +296,20 @@ while True:
 from machine import ADC, Pin
 import machine
 
-adc = ADC(Pin(1))
+ADC_GPIO = 1
+adc = ADC(Pin(ADC_GPIO))
 adc.atten(ADC.ATTN_11DB)
 
-def check_battery_and_sleep():
-    voltage = adc.read() / 4095 * 3.9
+DIVIDER_RATIO = 1.0
+LOW_BATTERY_V = 3.0
 
-    if voltage < 3.0:  # Low battery threshold
+def check_battery_and_sleep():
+    if not hasattr(adc, 'read_uv'):
+        print("ADC.read_uv() is not available on this firmware; cannot compare against a voltage threshold without calibration.")
+        return
+    voltage = (adc.read_uv() / 1_000_000) * DIVIDER_RATIO
+
+    if voltage < LOW_BATTERY_V:
         print("Low battery, entering deep sleep")
         machine.deepsleep(60000)  # Sleep 1 minute
     else:
@@ -309,7 +331,7 @@ rtc = machine.RTC()
 
 # Initialize counter in RTC memory
 if rtc.memory() == b'':
-    rtc.memory('0')
+    rtc.memory(b'0')
 
 # Read counter
 count = int(rtc.memory().decode())
@@ -335,7 +357,7 @@ import uos
 from machine import Pin, ADC
 
 # Check if just woke from deep sleep
-if machine.reset_cause() == machine.DEEP_SLEEP_RESET:
+if machine.reset_cause() == machine.DEEPSLEEP_RESET:
     # Read RTC memory
     rtc = machine.RTC()
     count = int(rtc.memory().decode())
@@ -360,7 +382,7 @@ else:
     # First boot - initialize
     print("First boot - initializing")
     rtc = machine.RTC()
-    rtc.memory('0')
+    rtc.memory(b'0')
     machine.deepsleep(1000)
 ```
 
@@ -370,20 +392,11 @@ else:
 
 ```python
 import machine
-import ulp
+import esp32
 
-# Note: ULP requires assembly code
-# This is a simplified example
-
-# Define ULP code (simplified)
-ulp_code = """
-// ULP assembly to wake every 30 seconds
-set_wakeup 30
-"""
-
-# Load and run ULP
-# Note: Full ULP support requires detailed assembly
-# See MicroPython docs for complete examples
+# ULP support is available on ESP32 / ESP32-S2 / ESP32-S3 (not ESP32-C3/C6).
+# Using the ULP requires loading a pre-built ULP binary program.
+ulp = esp32.ULP()
 
 machine.deepsleep()
 ```
@@ -400,7 +413,7 @@ machine.deepsleep()
 ### Loses data on wake
 
 1. Use RTC.memory() for preservation
-2. Keep data minimal (< 2KB)
+2. Keep data minimal (RTC user memory is limited; esp32 default is 2048 bytes)
 3. Store to flash for larger data
 4. Check reset_cause() to detect wake
 
@@ -413,7 +426,7 @@ machine.deepsleep()
 ### High current in sleep
 
 1. Ensure WiFi/BT are off
-2. Set all unused pins to INPUT_PULLDOWN
+2. Disable pull-ups/pull-downs on RTC pins if they can cause leakage
 3. Disconnect external peripherals
 4. Check for short circuits
 
@@ -429,4 +442,12 @@ machine.deepsleep()
 1. Keep writes minimal
 2. Use simple string encoding
 3. Verify memory size limits
-4. Check for buffer overflows
+
+## References
+
+- MicroPython `machine` module (sleep, reset cause, freq): https://docs.micropython.org/en/latest/library/machine.html
+- MicroPython `machine.RTC` (RTC user memory persistence/size): https://docs.micropython.org/en/latest/library/machine.RTC.html
+- MicroPython ESP32 quick reference (deep-sleep notes, pin behavior): https://docs.micropython.org/en/latest/esp32/quickref.html
+- MicroPython `esp32` module (EXT0/EXT1/Touch/ULP wake configuration): https://docs.micropython.org/en/latest/library/esp32.html
+- MicroPython `network.WLAN` (WiFi power management `pm`): https://docs.micropython.org/en/latest/library/network.WLAN.html
+- MicroPython `bluetooth` module (`bluetooth.BLE().active(False)`): https://docs.micropython.org/en/latest/library/bluetooth.html

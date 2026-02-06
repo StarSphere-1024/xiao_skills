@@ -2,7 +2,9 @@
 
 ## Overview
 
-WiFi networking on ESP32-based XIAO boards using MicroPython network module.
+WiFi networking on ESP32-based XIAO boards using MicroPython's `network` module.
+
+Note: MicroPython supports multiple ESP32 variants (ESP32, ESP32-C3/C6, ESP32-S2/S3) and features can differ by SoC and by MicroPython port/build. This page documents the portable `network.WLAN` API first; ESP32-port-specific knobs are called out explicitly.
 
 ## Station Mode (WiFi Client)
 
@@ -11,7 +13,7 @@ WiFi networking on ESP32-based XIAO boards using MicroPython network module.
 ```python
 import network
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 wlan.connect('your-SSID', 'your-password')
 
@@ -20,7 +22,6 @@ while not wlan.isconnected():
     pass
 
 print('Connected:', wlan.ifconfig())
-# Output: ('192.168.1.100', '255.255.255.0', '192.168.1.1', '8.8.8.8')
 ```
 
 ### Connection Status
@@ -29,19 +30,22 @@ print('Connected:', wlan.ifconfig())
 import network
 import time
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 wlan.connect('SSID', 'password')
 
 # Check status
 status = wlan.status()
 print(f"Status: {status}")
-# 0 = Link down
-# 1 = Joining
-# 3 = Got IP
-# -1 = Link fail
-# -2 = No AP
-# -3 = Auth fail
+
+# Portable status constants are defined in the `network` module.
+# The exact numeric values are port-specific, so prefer comparing to constants:
+# - network.STAT_IDLE
+# - network.STAT_CONNECTING
+# - network.STAT_WRONG_PASSWORD
+# - network.STAT_NO_AP_FOUND
+# - network.STAT_CONNECT_FAIL
+# - network.STAT_GOT_IP
 
 # Wait with timeout
 timeout = 10
@@ -60,7 +64,7 @@ else:
 ```python
 import network
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 
 networks = wlan.scan()
@@ -79,10 +83,11 @@ for net in networks:
 ```python
 import network
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 
 # Static IP configuration
+# Note: `ifconfig()` is deprecated in MicroPython. Prefer `ipconfig()` if your port/firmware supports it.
 wlan.ifconfig(('192.168.1.100', '255.255.255.0', '192.168.1.1', '8.8.8.8'))
 wlan.connect('SSID', 'password')
 
@@ -104,12 +109,11 @@ wlan.active(False)
 ```python
 import network
 
-ap = network.WLAN(network.AP_IF)
+ap = network.WLAN(network.WLAN.IF_AP)
 ap.active(True)
-ap.config(essid='XIAO-AP', password='12345678')
+ap.config(ssid='XIAO-AP', password='12345678')
 
 print('AP running:', ap.ifconfig())
-# Output: ('192.168.4.1', '255.255.255.0', '192.168.4.1', '255.255.255.255')
 ```
 
 ### AP with DHCP
@@ -117,41 +121,45 @@ print('AP running:', ap.ifconfig())
 ```python
 import network
 
-ap = network.WLAN(network.AP_IF)
+ap = network.WLAN(network.WLAN.IF_AP)
 ap.active(True)
 
 # Configure AP
-ap.config(essid='XIAO-AP',
+ap.config(ssid='XIAO-AP',
           password='password123',
           channel=11,
           hidden=False)
 
-# DHCP range: 192.168.4.2 - 192.168.4.254
 print('AP ready, IP:', ap.ifconfig()[0])
 ```
 
 ### Open AP (No Password)
 
 ```python
-ap = network.WLAN(network.AP_IF)
+import network
+
+ap = network.WLAN(network.WLAN.IF_AP)
 ap.active(True)
-ap.config(essid='XIAO-Open', authmode=network.AUTH_OPEN)
+# ESP32 port: `network.AUTH_OPEN` is available as an authmode value.
+ap.config(ssid='XIAO-Open', authmode=network.AUTH_OPEN)
 ```
 
 ## AP + STA Simultaneous
+
+Note: Creating both interfaces is supported. Whether both can be active and usable at the same time may depend on the ESP32 port/build and underlying ESP-IDF configuration.
 
 ```python
 import network
 
 # Station
-sta = network.WLAN(network.STA_IF)
+sta = network.WLAN(network.WLAN.IF_STA)
 sta.active(True)
 sta.connect('HomeWiFi', 'password')
 
 # Access Point
-ap = network.WLAN(network.AP_IF)
+ap = network.WLAN(network.WLAN.IF_AP)
 ap.active(True)
-ap.config(essid='XIAO-Hotspot')
+ap.config(ssid='XIAO-Hotspot')
 
 print('STA IP:', sta.ifconfig()[0])
 print('AP IP:', ap.ifconfig()[0])
@@ -164,13 +172,12 @@ print('AP IP:', ap.ifconfig()[0])
 ```python
 import network
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 
-# Enable power save
-wlan.config(pm=network.WIFI_PS_MIN_MODEM)  # Light sleep
-# wlan.config(pm=network.WIFI_PS_MAX_MODEM)  # Deeper sleep
-# wlan.config(pm=network.WIFI_PS_NONE)  # No power save
+# WiFi power management is controlled via `WLAN.config(pm=...)`.
+# Allowed values are `network.WLAN.PM_PERFORMANCE`, `network.WLAN.PM_POWERSAVE`, `network.WLAN.PM_NONE`.
+wlan.config(pm=network.WLAN.PM_POWERSAVE)
 
 wlan.connect('SSID', 'password')
 ```
@@ -182,7 +189,7 @@ import network
 import machine
 
 # Disconnect and disable
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.disconnect()
 wlan.active(False)
 
@@ -192,24 +199,7 @@ machine.deepsleep(60000)  # 60 seconds
 
 ## WiFi Events
 
-### Connection Callback
-
-```python
-import network
-import time
-
-def wifi_callback(wlan, event):
-    if event == network.EVT_STA_CONNECTED:
-        print("Connected to AP")
-    elif event == network.EVT_STA_DISCONNECTED:
-        print("Disconnected, reconnecting...")
-        wlan.connect('SSID', 'password')
-
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-wlan.callback(wifi_callback)
-wlan.connect('SSID', 'password')
-```
+MicroPython's portable `network.WLAN` API does not define a cross-port event callback mechanism. On ESP32, prefer polling `wlan.isconnected()` and `wlan.status()` (and use `wlan.config(reconnects=...)` to limit retries) rather than relying on undocumented callbacks.
 
 ## Network Configuration
 
@@ -217,12 +207,12 @@ wlan.connect('SSID', 'password')
 
 ```python
 import network
-import ubinascii
+import binascii
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 
-mac = ubinascii.hexlify(wlan.config('mac'), ':').decode()
+mac = binascii.hexlify(wlan.config('mac'), ':').decode()
 print(f"MAC: {mac}")
 ```
 
@@ -231,7 +221,7 @@ print(f"MAC: {mac}")
 ```python
 import network
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 wlan.connect('SSID', 'password')
 
@@ -239,6 +229,7 @@ while not wlan.isconnected():
     pass
 
 rssi = wlan.status('rssi')
+# Note: RSSI format and availability can vary across ports.
 print(f"Signal: {rssi} dBm")
 ```
 
@@ -269,9 +260,13 @@ def check_connection():
 
 ```python
 import network
-import urequests
 
-wlan = network.WLAN(network.STA_IF)
+try:
+    import requests
+except ImportError:
+    import urequests as requests
+
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 wlan.connect('SSID', 'password')
 
@@ -280,7 +275,7 @@ while not wlan.isconnected():
     pass
 
 # HTTP GET
-response = urequests.get('http://httpbin.org/get')
+response = requests.get('http://httpbin.org/get')
 print(response.status_code)
 print(response.text)
 response.close()
@@ -289,13 +284,16 @@ response.close()
 ### POST JSON
 
 ```python
-import urequests
+try:
+    import requests
+except ImportError:
+    import urequests as requests
 import ujson
 
 data = {'sensor': 'temperature', 'value': 25.3}
 headers = {'Content-Type': 'application/json'}
 
-response = urequests.post('http://httpbin.org/post',
+response = requests.post('http://httpbin.org/post',
                           json=data,
                           headers=headers)
 print(response.status_code)
@@ -306,10 +304,13 @@ response.close()
 ### Download File
 
 ```python
-import urequests
+try:
+    import requests
+except ImportError:
+    import urequests as requests
 
 def download_file(url, filename):
-    response = urequests.get(url)
+    response = requests.get(url)
     if response.status_code == 200:
         with open(filename, 'wb') as f:
             f.write(response.content)
@@ -327,9 +328,8 @@ download_file('http://example.com/data.txt', 'data.txt')
 ```python
 import network
 import socket
-import machine
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 wlan.connect('SSID', 'password')
 
@@ -360,7 +360,7 @@ while True:
     </html>
     """
 
-    conn.send(response)
+    conn.sendall(response.encode())
     conn.close()
 ```
 
@@ -371,9 +371,9 @@ import network
 import socket
 from machine import Pin
 
-led = Pin(2, Pin.OUT)
+led = Pin(2, Pin.OUT)  # GPIO number is board-specific; adjust for your XIAO variant.
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 wlan.connect('SSID', 'password')
 
@@ -397,22 +397,23 @@ while True:
     else:
         response = 'Use /on or /off'
 
-    conn.send('HTTP/1.1 200 OK\n\n')
-    conn.send(response)
+    conn.sendall(b'HTTP/1.1 200 OK\r\n\r\n')
+    conn.sendall(response.encode())
     conn.close()
 ```
 
 ## MQTT
+
+The `umqtt` modules are not part of the core MicroPython firmware API. If your firmware build includes `umqtt.simple` (or you have deployed it from `micropython-lib`), you can use the following pattern.
 
 ### Basic MQTT Publisher
 
 ```python
 import network
 import umqtt.simple
-import machine
 import time
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 wlan.connect('SSID', 'password')
 
@@ -441,13 +442,12 @@ while True:
 ```python
 import network
 import umqtt.simple
-import machine
 from machine import Pin
 import time
 
 led = Pin(2, Pin.OUT)
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 wlan.connect('SSID', 'password')
 
@@ -481,9 +481,8 @@ while True:
 import network
 import socket
 import struct
-import time
 
-wlan = network.WLAN(network.STA_IF)
+wlan = network.WLAN(network.WLAN.IF_STA)
 wlan.active(True)
 wlan.connect('SSID', 'password')
 
@@ -542,3 +541,11 @@ print(f"Time: {t}")
 1. Check DNS server in ifconfig
 2. Try using IP address directly
 3. Set DNS manually: `wlan.ifconfig(('192.168.1.100', '255.255.255.0', '192.168.1.1', '8.8.8.8'))`
+
+## References
+
+- MicroPython v1.27.0 `network.WLAN` API documentation: https://docs.micropython.org/en/v1.27.0/library/network.WLAN.html
+- MicroPython v1.27.0 `network` module documentation: https://docs.micropython.org/en/v1.27.0/library/network.html
+- MicroPython v1.27.0 ESP32 quick reference (Networking/WLAN notes): https://docs.micropython.org/en/v1.27.0/esp32/quickref.html#networking
+- MicroPython source (tag v1.27.0), ESP32 network globals/constants: https://github.com/micropython/micropython/blob/v1.27.0/ports/esp32/modnetwork_globals.h
+- MicroPython source (tag v1.27.0), ESP32 WLAN implementation (config params/status behavior): https://github.com/micropython/micropython/blob/v1.27.0/ports/esp32/network_wlan.c

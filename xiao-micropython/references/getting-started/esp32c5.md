@@ -18,14 +18,11 @@ The XIAO ESP32C5 is a compact board with WiFi and Bluetooth LE. This guide cover
 
 ## Firmware Download
 
-MicroPython for ESP32C5 uses the generic ESP32 firmware:
+Download MicroPython firmware for ESP32-C5 from:
 
 ```bash
-# Download from:
-# https://micropython.org/download/ESP32_GENERIC_C3/
-
-# Or use ESP32 generic firmware (compatible)
-# https://micropython.org/download/ESP32_GENERIC/
+# https://micropython.org/download/ESP32_GENERIC_C5/
+# Look for: ESP32_GENERIC_C5-*.bin
 ```
 
 ## Flashing Firmware
@@ -41,11 +38,14 @@ pip install esptool
 # 2. Connect USB
 # 3. Release BOOT button
 
+# Erase flash
+esptool.py --chip esp32c5 --port COM3 erase_flash
+
 # Flash firmware (Windows example)
-esptool.py --chip esp32c5 --port COM3 write_flash -z 0x10000 firmware.bin
+esptool.py --chip esp32c5 --port COM3 --baud 460800 write_flash -z 0x2000 firmware.bin
 
 # Flash firmware (Linux/Mac example)
-esptool.py --chip esp32c5 --port /dev/ttyUSB0 write_flash -z 0x10000 firmware.bin
+esptool.py --chip esp32c5 --port /dev/ttyUSB0 --baud 460800 write_flash -z 0x2000 firmware.bin
 ```
 
 ### Using Thonny IDE
@@ -218,7 +218,7 @@ mpremote reset
 ### WiFi won't connect
 
 1. Check SSID and password
-2. Ensure 2.4GHz network (ESP32 doesn't support 5GHz)
+2. Try 2.4GHz or 5GHz (ESP32-C5 supports dual-band Wi-Fi)
 3. Check router settings
 
 ## Next Steps
@@ -226,3 +226,9 @@ mpremote reset
 - Learn about deep sleep: `references/api/esp32-sleep.md`
 - BLE examples: `references/api/esp32-ble.md`
 - Project examples: `references/examples/`
+
+## References
+
+- MicroPython downloads (ESP32-C5): https://micropython.org/download/ESP32_GENERIC_C5/
+- Seeed wiki (XIAO ESP32-C5 with MicroPython): https://wiki.seeedstudio.com/xiao_esp32c5_with_micropyhton/
+- Seeed wiki (XIAO ESP32-C5 getting started / pin map): https://wiki.seeedstudio.com/XIAO_ESP32C5_Getting_Started/

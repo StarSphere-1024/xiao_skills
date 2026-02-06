@@ -9,8 +9,8 @@ The SeeedStudio XIAO ESP32C6 features the ESP32-C6 chip with WiFi 6, BLE 5.4, an
 | Feature | Value |
 |---------|-------|
 | MCU | ESP32-C6 (RISC-V, 160MHz single-core) |
-| Flash | 4 MB or 8 MB (varies by module/board) |
-| RAM | 512 KB |
+| Flash | 4 MB |
+| RAM | 512 KB SRAM |
 | WiFi | Wi‑Fi 6 (2.4 GHz) |
 | BLE | Bluetooth 5 (LE) |
 | 802.15.4 | Zigbee/Thread ready |
@@ -65,7 +65,7 @@ esptool.py --chip esp32c6 --port COM3 erase_flash
 ### 5. Flash Firmware
 
 ```bash
-esptool.py --chip esp32c6 --port COM3 write_flash -z 4MB 0 firmware.bin
+esptool.py --chip esp32c6 --port COM3 --baud 460800 write_flash -z 0x0 firmware.bin
 ```
 
 ### 6. Connect with Thonny
@@ -154,8 +154,8 @@ while True:
 from machine import Pin, PWM
 import time
 
-# PWM on D10
-pwm = PWM(Pin(10))
+# PWM on D10 (GPIO18)
+pwm = PWM(Pin(18))
 pwm.freq(1000)  # 1kHz
 
 # Fade LED
@@ -314,33 +314,13 @@ while True:
     time.sleep(1)
 ```
 
-## Temperature Sensor (Internal)
-
-```python
-import machine
-
-# Read internal temperature
-temp = machine.temperature()
-print(f"Internal temperature: {temp}°C")
-```
-
-## Hall Sensor (ESP32-C6)
-
-```python
-import machine
-
-# Read hall sensor
-hall = machine.hall_sensor()
-print(f"Hall sensor: {hall}")
-```
-
 ## Touch Pins (if available)
 
 ```python
-from machine import TouchPad
+from machine import Pin, TouchPad
 import time
 
-# Touch on T0 (if available)
+# Touch input (replace GPIO with a touch-capable pin for your firmware/board)
 touch = TouchPad(Pin(0))
 
 while True:
@@ -356,19 +336,10 @@ while True:
 | Core | RISC-V single-core | RISC-V single-core |
 | Flash | 4 MB | 4 MB |
 | RAM | 400 KB | 512 KB |
-| WiFi | 802.11b/g/n | 802.11b/g/n (WiFi 6 ready) |
-| BLE | 5.0 | 5.4 |
+| WiFi | 2.4 GHz | Wi‑Fi 6 (2.4 GHz) |
+| BLE | BLE | BLE |
 | 802.15.4 | No | Yes (Zigbee/Thread) |
 | Low Power | Good | Better |
-
-## Typical Current Consumption
-
-| Mode | Current |
-|------|---------|
-| Active (WiFi) | ~150mA |
-| Active (no WiFi) | ~50mA |
-| Lightsleep | ~5mA |
-| Deepsleep | ~150µA |
 
 ## Troubleshooting
 
@@ -389,7 +360,7 @@ while True:
 ### WiFi won't connect
 
 1. Check SSID and password
-2. Ensure 2.4GHz network (ESP32 doesn't support 5GHz)
+2. Ensure 2.4GHz network (ESP32-C6 WiFi is 2.4 GHz)
 3. Check router settings
 4. Try reset: `wlan.disconnect()`
 
@@ -431,34 +402,17 @@ while True:
 3. Try lower baudrate
 4. Check MISO/MOSI not swapped
 
-## Migration from ESP32C3
-
-```python
-# ESP32C3 code mostly works on ESP32C6
-# Changes needed:
-
-# 1. Update WiFi (if using WiFi 6 features)
-wlan.config(pm=WIFI_PS_MIN_MODEM)  # New power save modes
-
-# 2. Update BLE (if using BLE 5.4 features)
-# BLE 5.4 features may require new API
-
-# 3. Pin mappings - same as ESP32C3
-
-# 4. Low power - ESP32C6 has better options
-machine.lightsleep(5000)  # Lower power than C3
-```
-
 ## Complete Example: Weather Station
 
 ```python
 from machine import Pin, I2C, ADC
+import machine
 import network
 import time
 import urequests
 
 # I2C for BME280
-i2c = I2C(0, scl=Pin(5), sda=Pin(4), freq=100000)
+i2c = I2C(0, scl=Pin(23), sda=Pin(22), freq=100000)
 
 # WiFi connection
 wlan = network.WLAN(network.STA_IF)
@@ -483,3 +437,9 @@ response.close()
 # Sleep for 5 minutes
 machine.deepsleep(300000)
 ```
+
+## References
+
+- MicroPython downloads (ESP32-C6): https://micropython.org/download/ESP32_GENERIC_C6/
+- MicroPython ESP32 tutorial (install/troubleshooting): https://docs.micropython.org/en/latest/esp32/tutorial/intro.html
+- Seeed wiki (XIAO ESP32C6 pin map / user light): https://wiki.seeedstudio.com/XIAO_ESP32C6_Getting_Started/

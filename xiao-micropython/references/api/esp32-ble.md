@@ -2,7 +2,7 @@
 
 ## Overview
 
-ESP32 series (C3, C6, S3) support Bluetooth Low Energy (BLE) with MicroPython's `ubluetooth` module.
+ESP32 series (C3, C6, S3) support Bluetooth Low Energy (BLE) with MicroPython's `bluetooth` module.
 
 ## Basic Concepts
 
@@ -10,20 +10,20 @@ BLE has two main roles:
 - **Peripheral**: Advertises data, accepts connections (e.g., sensor, beacon)
 - **Central**: Scans for devices, initiates connections (e.g., phone, gateway)
 
-XIAO ESP32 boards support both roles simultaneously.
+MicroPython's BLE API supports operating in multiple roles concurrently, but practical limits (connections, throughput, memory) depend on your firmware build and BLE stack.
 
 ## Quick Start - Peripheral
 
 ```python
-import ubluetooth
+import bluetooth
 import time
 
 # Initialize BLE
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 # Advertise
-ble.gap_advertise(100, b'\x02\x01\x06\x02\x0A\x00')  # 100ms interval
+ble.gap_advertise(100000, b'\x02\x01\x06\x02\x0A\x00')  # 100ms interval (interval_us)
 
 # Set device name
 ble.config('gap_name', 'XIAO-ESP32')
@@ -38,15 +38,19 @@ while True:
 ## Quick Start - Central
 
 ```python
-import ubluetooth
+import bluetooth
 import time
 
 # Initialize BLE
-ble = ubluetooth.BLE()
+from micropython import const
+
+_IRQ_SCAN_RESULT = const(5)
+
+ble = bluetooth.BLE()
 ble.active(True)
 
 def irq_handler(event, data):
-    if event == 1:  # Scan result
+    if event == _IRQ_SCAN_RESULT:  # Scan result
         addr_type, addr, adv_type, rssi, adv_data = data
         print(f"Found: {bytes(addr).hex()}, RSSI: {rssi}")
 
@@ -61,13 +65,13 @@ ble.gap_scan(10000)
 ### Simple Advertisement
 
 ```python
-import ubluetooth
+import bluetooth
 
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 # Advertise with 100ms interval
-ble.gap_advertise(100)
+ble.gap_advertise(100000)
 
 # Stop advertising
 ble.gap_advertise(None)
@@ -76,10 +80,10 @@ ble.gap_advertise(None)
 ### Custom Advertisement Data
 
 ```python
-import ubluetooth
+import bluetooth
 import struct
 
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 # Build advertising data
@@ -95,18 +99,20 @@ ble.gap_advertise(100, adv_data)
 ### Advertisement with Name
 
 ```python
-import ubluetooth
+import bluetooth
+import struct
 
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 # Set device name
 ble.config('gap_name', 'XIAO-Sensor')
 
-# Advertising data with complete name
-adv_data = struct.pack("<BB", 9, 0x08)  # Length, Type (Complete Local Name)
-adv_data += b'XIAO-Sensor'
+# Advertising data with complete name (AD type 0x09)
+name = b'XIAO-Sensor'
+adv_data = bytearray()
 adv_data += b'\x02\x01\x06'  # Flags
+adv_data += struct.pack('BB', len(name) + 1, 0x09) + name
 
 ble.gap_advertise(100, adv_data)
 ```
@@ -114,10 +120,10 @@ ble.gap_advertise(100, adv_data)
 ### Advertisement with Service Data
 
 ```python
-import ubluetooth
+import bluetooth
 import struct
 
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 # Environmental sensing service data (temperature)
@@ -135,23 +141,29 @@ ble.gap_advertise(100, adv_data)
 ## GAP Events (IRQ)
 
 ```python
-import ubluetooth
+import bluetooth
 
-ble = ubluetooth.BLE()
+from micropython import const
+
+_IRQ_CENTRAL_CONNECT = const(1)
+_IRQ_CENTRAL_DISCONNECT = const(2)
+_IRQ_GATTS_WRITE = const(3)
+
+ble = bluetooth.BLE()
 ble.active(True)
 
 def irq(event, data):
-    if event == 1:  # _IRQ_CENTRAL_CONNECT
+    if event == _IRQ_CENTRAL_CONNECT:
         conn_handle, addr_type, addr = data
         print(f"Connected: {bytes(addr).hex()}")
 
-    elif event == 2:  # _IRQ_CENTRAL_DISCONNECT
+    elif event == _IRQ_CENTRAL_DISCONNECT:
         conn_handle, addr_type, addr = data
         print(f"Disconnected: {bytes(addr).hex()}")
         # Restart advertising
-        ble.gap_advertise(100)
+        ble.gap_advertise(100000)
 
-    elif event == 3:  # _IRQ_GATTS_WRITE
+    elif event == _IRQ_GATTS_WRITE:
         conn_handle, value_handle = data
         print(f"Written to handle: {value_handle}")
 
@@ -163,23 +175,23 @@ ble.irq(irq)
 ### Creating a Service
 
 ```python
-import ubluetooth
+import bluetooth
 import struct
 
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 # UUIDs
-ENV_SENSING_SERVICE = ubluetooth.UUID(0x181A)
-TEMP_CHAR = ubluetooth.UUID(0x2A6E)
-HUM_CHAR = ubluetooth.UUID(0x2A6F)
+ENV_SENSING_SERVICE = bluetooth.UUID(0x181A)
+TEMP_CHAR = bluetooth.UUID(0x2A6E)
+HUM_CHAR = bluetooth.UUID(0x2A6F)
 
 # Create service
 SERVICE = (
     ENV_SENSING_SERVICE,
     (
-        (TEMP_CHAR, ubluetooth.FLAG_READ | ubluetooth.FLAG_NOTIFY),
-        (HUM_CHAR, ubluetooth.FLAG_READ | ubluetooth.FLAG_NOTIFY),
+        (TEMP_CHAR, bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY),
+        (HUM_CHAR, bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY),
     ),
 )
 
@@ -203,11 +215,16 @@ print("GATT server ready")
 ### Notifying Characteristic Changes
 
 ```python
-import ubluetooth
+import bluetooth
 import struct
 import time
 
-ble = ubluetooth.BLE()
+from micropython import const
+
+_IRQ_CENTRAL_CONNECT = const(1)
+_IRQ_CENTRAL_DISCONNECT = const(2)
+
+ble = bluetooth.BLE()
 ble.active(True)
 
 # Setup GATT server (see above)
@@ -220,12 +237,12 @@ conn_handle = None
 def irq(event, data):
     global connected, conn_handle
 
-    if event == 1:  # Connected
+    if event == _IRQ_CENTRAL_CONNECT:
         conn_handle, addr_type, addr = data
         connected = True
         print("Connected")
 
-    elif event == 2:  # Disconnected
+    elif event == _IRQ_CENTRAL_DISCONNECT:
         connected = False
         conn_handle = None
         print("Disconnected")
@@ -233,7 +250,7 @@ def irq(event, data):
 ble.irq(irq)
 
 # Advertise
-ble.gap_advertise(100)
+ble.gap_advertise(100000)
 
 # Update loop
 counter = 0
@@ -254,48 +271,52 @@ while True:
 ### Readable Characteristics
 
 ```python
-import ubluetooth
+import bluetooth
 
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 # Register service with readable characteristics
 SERVICE = (
-    ubluetooth.UUID(0x1800),  # Generic Access
+    bluetooth.UUID(0x1800),  # Generic Access
     (
-        (ubluetooth.UUID(0x2A00), ubluetooth.FLAG_READ),  # Device Name
+        (bluetooth.UUID(0x2A00), bluetooth.FLAG_READ),  # Device Name
     ),
 )
 
 handles = ble.gatts_register_services((SERVICE,))
-name_handle = handles[0]
+name_handle = handles[0][0]
 
 # Set device name
-ble.gatts_write(name_handle, 'XIAO-ESP32')
+ble.gatts_write(name_handle, b'XIAO-ESP32')
 ```
 
 ### Writable Characteristics
 
 ```python
-import ubluetooth
+import bluetooth
 
-ble = ubluetooth.BLE()
+from micropython import const
+
+_IRQ_GATTS_WRITE = const(3)
+
+ble = bluetooth.BLE()
 ble.active(True)
 
-LED_SERVICE = ubluetooth.UUID(0x1800)  # Custom service
-LED_CHAR = (ubluetooth.UUID(0x2A00), ubluetooth.FLAG_READ | ubluetooth.FLAG_WRITE)
+UART_SERVICE = bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')
+UART_RX = (bluetooth.UUID('6E400002-B5A3-F393-E0A9-E50E24DCCA9E'), bluetooth.FLAG_WRITE)
 
-SERVICE = (LED_SERVICE, (LED_CHAR,))
+SERVICE = (UART_SERVICE, (UART_RX,))
 
 handles = ble.gatts_register_services((SERVICE,))
-led_handle = handles[0]
+rx_handle = handles[0][0]
 
 def irq(event, data):
-    if event == 3:  # _IRQ_GATTS_WRITE
+    if event == _IRQ_GATTS_WRITE:
         conn_handle, value_handle = data
-        if value_handle == led_handle:
-            value = ble.gatts_read(led_handle)
-            print(f"LED value: {value}")
+        if value_handle == rx_handle:
+            value = ble.gatts_read(rx_handle)
+            print(f"RX wrote: {value}")
 
 ble.irq(irq)
 ```
@@ -305,33 +326,40 @@ ble.irq(irq)
 ### Connecting to Peripheral
 
 ```python
-import ubluetooth
+import bluetooth
 import time
 
-ble = ubluetooth.BLE()
+from micropython import const
+
+_IRQ_PERIPHERAL_CONNECT = const(7)
+_IRQ_GATTC_SERVICE_RESULT = const(9)
+_IRQ_GATTC_CHARACTERISTIC_RESULT = const(11)
+
+ble = bluetooth.BLE()
 ble.active(True)
 
 # Target device address (example)
 TARGET_ADDR = b'\x11\x22\x33\x44\x55\x66'
+TARGET_ADDR_TYPE = 0  # 0x00 public, 0x01 random
 
 def irq(event, data):
-    if event == 1:  # Connected
+    if event == _IRQ_PERIPHERAL_CONNECT:
         conn_handle, addr_type, addr = data
         print(f"Connected to {bytes(addr).hex()}")
 
         # Discover services
         ble.gattc_discover_services(conn_handle)
 
-    elif event == 7:  # Service discovered
+    elif event == _IRQ_GATTC_SERVICE_RESULT:
         conn_handle, start_handle, end_handle, uuid = data
-        print(f"Service: {uuid:04X}")
+        print(f"Service: {uuid}")
 
         # Discover characteristics
         ble.gattc_discover_characteristics(conn_handle, start_handle, end_handle)
 
-    elif event == 8:  # Characteristic discovered
+    elif event == _IRQ_GATTC_CHARACTERISTIC_RESULT:
         conn_handle, end_handle, value_handle, properties, uuid = data
-        print(f"Characteristic: {uuid:04X}, handle: {value_handle}")
+        print(f"Characteristic: {uuid}, handle: {value_handle}")
 
 ble.irq(irq)
 
@@ -339,15 +367,19 @@ ble.irq(irq)
 ble.gap_scan(2000)
 
 # Then connect
-ble.gap_connect(TARGET_ADDR)
+ble.gap_connect(TARGET_ADDR_TYPE, TARGET_ADDR)
 ```
 
 ### Reading Characteristic
 
 ```python
-import ubluetooth
+import bluetooth
 
-ble = ubluetooth.BLE()
+from micropython import const
+
+_IRQ_GATTC_READ_RESULT = const(15)
+
+ble = bluetooth.BLE()
 ble.active(True)
 
 value_handle = None  # From discovery
@@ -355,9 +387,9 @@ value_handle = None  # From discovery
 def irq(event, data):
     global value_handle
 
-    if event == 9:  # Read complete
-        conn_handle, value_handle, data = data
-        print(f"Read: {data}")
+    if event == _IRQ_GATTC_READ_RESULT:
+        conn_handle, value_handle, char_data = data
+        print(f"Read: {char_data}")
 
 # Read characteristic
 ble.gattc_read(conn_handle, value_handle)
@@ -366,67 +398,78 @@ ble.gattc_read(conn_handle, value_handle)
 ### Writing Characteristic
 
 ```python
-import ubluetooth
+import bluetooth
 import struct
 
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 value_handle = None  # From discovery
 
-# Write without response (fast)
-ble.gattc_write(conn_handle, value_handle, b'\x01', False)
+# mode=0 (default): write-without-response
+ble.gattc_write(conn_handle, value_handle, b'\x01', 0)
 
-# Write with response (confirmed)
-ble.gattc_write(conn_handle, value_handle, struct.pack("<h", 2500), True)
+# mode=1: write-with-response
+ble.gattc_write(conn_handle, value_handle, struct.pack("<h", 2500), 1)
 ```
 
 ### Subscribing to Notifications
 
 ```python
-import ubluetooth
+import bluetooth
 
-ble = ubluetooth.BLE()
+from micropython import const
+
+_IRQ_GATTC_NOTIFY = const(18)
+
+ble = bluetooth.BLE()
 ble.active(True)
 
 def irq(event, data):
-    if event == 10:  # Notification received
-        conn_handle, value_handle, data = data
-        print(f"Notified: {data}")
+    if event == _IRQ_GATTC_NOTIFY:
+        conn_handle, value_handle, notify_data = data
+        print(f"Notified: {notify_data}")
 
-# Subscribe to notifications
-ble.gattc_write(conn_handle, value_handle + 1, b'\x01\x00')
+# Subscribe to notifications.
+# Note: CCCD is often at value_handle+1 but this is not guaranteed. Prefer to
+# discover descriptors and find UUID 0x2902.
+ble.gattc_write(conn_handle, value_handle + 1, b'\x01\x00', 1)
 ```
 
 ## Complete Example - BLE Environmental Sensor
 
 ```python
-import ubluetooth
+import bluetooth
 import struct
 import time
 import machine
 from machine import Pin
 
+from micropython import const
+
+_IRQ_CENTRAL_CONNECT = const(1)
+_IRQ_CENTRAL_DISCONNECT = const(2)
+
 # Hardware
 led = Pin(10, Pin.OUT)
 
 # BLE setup
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 # UUIDs
-ENV_SERVICE = ubluetooth.UUID(0x181A)
-TEMP_CHAR = ubluetooth.UUID(0x2A6E)
-HUM_CHAR = ubluetooth.UUID(0x2A6F)
-PRESS_CHAR = ubluetooth.UUID(0x2A6D)
+ENV_SERVICE = bluetooth.UUID(0x181A)
+TEMP_CHAR = bluetooth.UUID(0x2A6E)
+HUM_CHAR = bluetooth.UUID(0x2A6F)
+PRESS_CHAR = bluetooth.UUID(0x2A6D)
 
 # Service definition
 SERVICE = (
     ENV_SERVICE,
     (
-        (TEMP_CHAR, ubluetooth.FLAG_READ | ubluetooth.FLAG_NOTIFY),
-        (HUM_CHAR, ubluetooth.FLAG_READ | ubluetooth.FLAG_NOTIFY),
-        (PRESS_CHAR, ubluetooth.FLAG_READ | ubluetooth.FLAG_NOTIFY),
+        (TEMP_CHAR, bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY),
+        (HUM_CHAR, bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY),
+        (PRESS_CHAR, bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY),
     ),
 )
 
@@ -441,19 +484,19 @@ conn_handle = None
 def irq(event, data):
     global connected, conn_handle
 
-    if event == 1:  # Connected
+    if event == _IRQ_CENTRAL_CONNECT:
         conn_handle, addr_type, addr = data
         connected = True
         led.value(1)
         print(f"Connected: {bytes(addr).hex()}")
 
-    elif event == 2:  # Disconnected
+    elif event == _IRQ_CENTRAL_DISCONNECT:
         connected = False
         conn_handle = None
         led.value(0)
         print("Disconnected")
         # Restart advertising
-        ble.gap_advertise(100)
+        ble.gap_advertise(100000)
 
 ble.irq(irq)
 
@@ -462,7 +505,7 @@ ble.config('gap_name', 'XIAO-Weather')
 adv_data = bytearray()
 adv_data += b'\x02\x01\x06'  # Flags
 adv_data += b'\x03\x03\x1A\x18'  # Environmental Sensing UUID
-ble.gap_advertise(100, adv_data)
+ble.gap_advertise(100000, adv_data)
 
 # Simulate sensor data
 counter = 0
@@ -492,16 +535,20 @@ while True:
 ## BLE Scanner
 
 ```python
-import ubluetooth
+import bluetooth
 import time
 
-ble = ubluetooth.BLE()
+from micropython import const
+
+_IRQ_SCAN_RESULT = const(5)
+
+ble = bluetooth.BLE()
 ble.active(True)
 
 devices = {}
 
 def irq(event, data):
-    if event == 1:  # Scan result
+    if event == _IRQ_SCAN_RESULT:
         addr_type, addr, adv_type, rssi, adv_data = data
         addr_str = bytes(addr).hex()
 
@@ -533,49 +580,46 @@ for addr, info in devices.items():
 ## Advertising Types
 
 ```python
-import ubluetooth
+import bluetooth
 
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 # Connectable undirected (default)
-ble.gap_advertise(100)
+ble.gap_advertise(100000)
 
 # Non-connectable (beacon)
-ble.gap_advertise(100, connectable=False)
+ble.gap_advertise(100000, connectable=False)
 
-# High duty cycle (fast discoverable)
-ble.gap_advertise(20, interval=20)  # 20ms
+# Faster interval (higher power)
+ble.gap_advertise(20000)  # 20ms (interval_us)
 ```
 
 ## Connection Parameters
 
 ```python
-import ubluetooth
+import bluetooth
 
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
-# Set connection parameters
-# min_interval, max_interval, latency, timeout
-# Interval: 7.5ms to 4s (in 1.25ms units)
-# Latency: 0-499
-# Timeout: 100ms-32s (in 10ms units)
-ble.config('mtu', 512)  # Increase MTU
+# Set preferred ATT MTU. MTU exchange is not automatic and is typically
+# initiated by the central (use ble.gattc_exchange_mtu(conn_handle)).
+ble.config(mtu=512)
 ```
 
 ## Power Management
 
 ```python
-import ubluetooth
+import bluetooth
 import machine
 
-ble = ubluetooth.BLE()
+ble = bluetooth.BLE()
 ble.active(True)
 
 # Low power mode
-ble.config('rxbuf', 512)  # Reduce RX buffer
-ble.config('gap_name', 'XIAO')  # Shorter name = less data
+ble.config(rxbuf=512)  # Smaller event ring buffer
+ble.config(gap_name='XIAO')  # Shorter name = less data
 
 # Sleep between advertising
 ble.gap_advertise(100)
@@ -623,13 +667,16 @@ machine.lightsleep(5000)  # Sleep 5 seconds
 
 | Board | BLE Support | Notes |
 |-------|-------------|-------|
-| ESP32C3 | ✅ | BLE 4.2 |
-| ESP32C6 | ✅ | BLE 5.0 |
-| ESP32S3 | ✅ | BLE 5.0 |
+| ESP32C3/C6/S3 | ✅ | Requires MicroPython firmware built with BLE support |
 | RP2040 | ❌ | No radio |
-| nRF52840 | ✅ | BLE 5.0, use nRF API |
+| nRF52840 | ✅ | MicroPython supports BLE (module name differs by port) |
 
 ## Related Resources
 
 - `nrf-ble.md` - nRF52 BLE API
 - `../examples/ble-peripheral.md` - BLE sensor example
+
+## References
+
+- MicroPython official BLE API docs (latest): https://docs.micropython.org/en/latest/library/bluetooth.html
+- MicroPython source (function signatures and config keys): https://github.com/micropython/micropython/blob/master/extmod/modbluetooth.c
