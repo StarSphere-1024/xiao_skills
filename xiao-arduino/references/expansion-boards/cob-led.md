@@ -231,19 +231,16 @@ For ESP32 series, you can control PWM frequency:
 #define PWM_RES   8     // 8-bit resolution
 
 void setup() {
-  ledcSetup(0, PWM_FREQ, PWM_RES);  // Channel 0
-  ledcSetup(1, PWM_FREQ, PWM_RES);  // Channel 1
-  ledcSetup(2, PWM_FREQ, PWM_RES);  // Channel 2
-
-  ledcAttachPin(RED_PIN, 0);
-  ledcAttachPin(GREEN_PIN, 1);
-  ledcAttachPin(BLUE_PIN, 2);
+  // Configure LEDC for each pin (channel is selected automatically)
+  ledcAttach(RED_PIN, PWM_FREQ, PWM_RES);
+  ledcAttach(GREEN_PIN, PWM_FREQ, PWM_RES);
+  ledcAttach(BLUE_PIN, PWM_FREQ, PWM_RES);
 }
 
 void setCOBColor(int red, int green, int blue) {
-  ledcWrite(0, red);
-  ledcWrite(1, green);
-  ledcWrite(2, blue);
+  ledcWrite(RED_PIN, red);
+  ledcWrite(GREEN_PIN, green);
+  ledcWrite(BLUE_PIN, blue);
 }
 
 void loop() {

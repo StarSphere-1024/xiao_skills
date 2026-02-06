@@ -4,6 +4,8 @@
 
 XIAO ESP32C3/C5/C6/S3 boards provide additional hardware-specific APIs beyond standard Arduino functions.
 
+These APIs are provided by the Espressif Arduino core (arduino-esp32). Availability and behavior can vary by SoC (ESP32-C3 vs ESP32-S3) and core version.
+
 ## Memory Configuration
 
 ### PSRAM (ESP32S3 only)
@@ -37,33 +39,39 @@ void* large_buffer_cstr = ps_calloc(1024, sizeof(char));  // Clear memory
 ### LEDC PWM (ESP32)
 
 ```cpp
-// ESP32C3/C6 have 8 LEDC channels
-// ESP32S3 has 8 channels
+// LEDC channel count depends on the SoC.
+// For example, Arduino-ESP32 documents:
+// - ESP32-S3: 8 channels
+// - ESP32-C3 / ESP32-C6: 6 channels
 
 const int PWM_PIN = D7;  // PWM capable pin
 const int PWM_FREQ = 5000;  // 5kHz
 const int PWM_RES = 10;  // 10-bit resolution (0-1023)
 
 void setup() {
-    ledcSetup(0, PWM_FREQ, PWM_RES);  // Channel 0
+    Serial.begin(115200);
 
-    ledcAttachPin(PWM_PIN, 0);  // Attach pin to channel 0
+    // Configure LEDC for this pin; channel is selected automatically.
+    bool ok = ledcAttach(PWM_PIN, PWM_FREQ, PWM_RES);
+    if (!ok) {
+        Serial.println("LEDC attach failed");
+    }
 }
 
 void setBrightness(int brightness) {
     // brightness: 0-1023
-    ledcWrite(0, brightness);
+    ledcWrite(PWM_PIN, brightness);
 }
 
 void loop() {
     // Fade in/out
 
     for (int i = 0; i <= 1023; i++) {
-        ledcWrite(0, i);
+        ledcWrite(PWM_PIN, i);
         delay(1);
     }
     for (int i = 1023; i >= 0; i--) {
-        ledcWrite(0, i);
+        ledcWrite(PWM_PIN, i);
         delay(1);
     }
 }
@@ -76,7 +84,9 @@ void loop() {
 const int LED_PIN = D10;
 
 void setup() {
-    // No setup needed, analogWrite uses LEDC by default
+    // Optional tuning per pin
+    // analogWriteFrequency(LED_PIN, 5000);
+    // analogWriteResolution(LED_PIN, 10);
 }
 
 void loop() {
@@ -110,28 +120,17 @@ void setup() {
 
 void loop() {
     int rawValue = analogRead(ADC_PIN);  // 0-4095
-    float voltage = rawValue * 3.3 / 4095.0;
+    // Prefer analogReadMilliVolts() when available (uses calibration when supported)
+    uint32_t mv = analogReadMilliVolts(ADC_PIN);
 
-    Serial.printf("Raw: %d, Voltage: %.2fV\n", rawValue, voltage);
+    Serial.printf("Raw: %d, Voltage: %u mV\n", rawValue, (unsigned)mv);
     delay(1000);
 }
 ```
 
-### Hall Effect Sensor (ESP32C3/C6/S3)
+### Hall Sensor (not available on XIAO ESP32C3/C5/C6/S3)
 
-```cpp
-// Built-in hall effect sensor
-void setup() {
-    Serial.begin(115200);
-}
-
-void loop() {
-    int hall = hallRead();  // Read hall sensor
-
-    Serial.printf("Hall sensor: %d\n", hall);
-    delay(1000);
-}
-```
+`hallRead()` exists for classic ESP32 targets that include a built-in hall sensor. XIAO ESP32C3/C5/C6/S3 boards do not provide a built-in hall sensor.
 
 ## Temperature Sensor
 
@@ -142,18 +141,19 @@ void setup() {
 }
 
 void loop() {
-    // Read internal temperature (in Celsius)
-    float temp = temperatureRead();
-    Serial.printf("Temperature: %.2f°C\n", temp / 10.0);
+    // Read internal temperature (Celsius). May return NAN if unsupported.
+    float tempC = temperatureRead();
+    Serial.printf("Temperature: %.2f C\n", tempC);
     delay(1000);
 }
 ```
 
-## Touch Sensors (ESP32C3/C6/S3)
+## Touch Sensors (ESP32S3 only)
 
 ```cpp
-// ESP32C3/C6/S3 have touch-capable pins
-// XIAO ESP32C3 touch pins: D1, D2, D3, D4, D5, D6, D7, D8, D9, D10
+// Touch is supported only on SoCs with a touch peripheral.
+// Arduino-ESP32's touch implementation targets ESP32 / ESP32-S2 / ESP32-S3.
+// On XIAO ESP32S3, use a touch-capable pin (refer to the board pinout).
 
 const int TOUCH_PIN = T1;  // D1 is T1
 
@@ -189,9 +189,8 @@ void setup() {
     // Configure wake up source
     esp_sleep_enable_timer_wakeup(60 * uS_TO_S_FACTOR);  // 60 seconds
 
-    // Or wake up on touch pin
-    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_AUTO);
-    esp_sleep_enable_touchpad_wakeup(T1);
+    // Touch wake is ESP32S3-only on XIAO ESP32S3.
+    // Use touchSleepWakeUpEnable(T1, threshold) if you need touch wake.
 
     Serial.println("Going to sleep...");
     esp_deep_sleep_start();  // Sleep (code stops here)
@@ -296,10 +295,12 @@ void IRAM_ATTR timer_isr() {
 }
 
 void setup() {
-    timer = timerBegin(0, 80, true);  // Timer 0, 80MHz prescaler
+    // Configure timer frequency (Hz). Example: 1 MHz tick.
+    timer = timerBegin(1000000);
     timerAttachInterrupt(timer, &timer_isr);
-    timerAlarmWrite(timer, 1000000, true);  // 1 second
-    timerEnable(timer);
+    // Alarm value is in timer ticks (here: 1,000,000 ticks @ 1 MHz = 1 second)
+    // reload_count: 0 = unlimited
+    timerAlarm(timer, 1000000, true, 0);
 }
 
 
@@ -314,5 +315,7 @@ void loop() {
 ## References
 
 - [ESP32 Arduino Core](https://github.com/espressif/arduino-esp32)
-- [ESP32 Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf)
-- [LEDC Control](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/apis/ledc.html)
+- [ESP32-C3 Datasheet (for ESP32-C3 specifics)](https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf)
+- [Arduino-ESP32 LEDC API](https://github.com/espressif/arduino-esp32/blob/master/docs/en/api/ledc.rst)
+- [Arduino-ESP32 Timer API](https://github.com/espressif/arduino-esp32/blob/master/docs/en/api/timer.rst)
+- [temperatureRead() implementation (returns Celsius / NAN on failure)](https://github.com/espressif/arduino-esp32/blob/master/cores/esp32/esp32-hal-misc.c)
